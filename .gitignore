@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+result
+result-*
+
+mango
+
+# Nix
+result
+result-*
+
+# Debian packages
+*.deb
+
+# Compiled objects
+*.o
+*.so
+*.dylib
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*

@@ -1,0 +1,7 @@
+# --- Curated Wallpaper Collections (ZIP links) ---
+zip https://github.com/catppuccin/wallpapers/archive/refs/heads/main.zip
+zip https://github.com/tuvhey/wallpapers/archive/refs/heads/master.zip
+zip https://github.com/linuxdotfiles/wallpapers/archive/refs/heads/main.zip
+
+# --- Single Images ---
+https https://images.unsplash.com/photo-1477346611705-65d1883cee1e?auto=format&fit=crop&w=1920&q=80
