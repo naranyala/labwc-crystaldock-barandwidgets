@@ -1,0 +1,36 @@
+#Api2
+
+Private {
+
+  include("cal.widget")
+
+  Var week_starts_on_sunday = 0;
+  Var time_format = "%H:%M"
+  Var tooltip_format = "%k:%M\n%x"
+  Var reset_on_popup = TRUE;
+
+  export button 'clock' {
+    style = "module_pill"
+    tooltip = Time(tooltip_format)
+    action = {
+      If reset_on_popup
+        EmitTrigger("calendar-reset")
+      PopUp("Xcal")
+    }
+
+    grid {
+      style = "pill_grid"
+      image { value = "preferences-system-time-symbolic" }
+      label { value = Time(time_format) }
+    }
+  }
+}
+
+#CSS
+
+label#clock {
+  padding-left: 2px;
+  padding-right: 2px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
+}

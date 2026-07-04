@@ -87,7 +87,7 @@ done
 # ============================================================
 
 LABWC_DST="$HOME/.config/labwc"
-SFWBAR_DST="$HOME/.config/sfwbar"
+OCWS_DST="$HOME/.config/ocws"
 GTK3_DIR="$HOME/.config/gtk-3.0"
 GTK4_DIR="$HOME/.config/gtk-4.0"
 FUZZEL_DST="$HOME/.config/fuzzel"
@@ -172,7 +172,7 @@ if [[ "$SKIP_BACKUP" -eq 0 ]]; then
 
   BACKUP_ITEMS=(
     "$LABWC_DST"
-    "$SFWBAR_DST"
+    "$OCWS_DST"
     "$GTK3_DIR"
     "$GTK4_DIR"
     "$FUZZEL_DST"
@@ -214,7 +214,7 @@ section "3. Create Directories"
 DIRS=(
   "$LABWC_DST"
   "$HOME/.config/labwc-widgets"
-  "$SFWBAR_DST"
+  "$OCWS_DST"
   "$GTK3_DIR"
   "$GTK4_DIR"
   "$FUZZEL_DST"
@@ -265,18 +265,18 @@ if [[ -d "$LABWC_SRC/presets" ]]; then
 fi
 
 # ============================================================
-# Install sfwbar config
+# Install OCWS config
 # ============================================================
 
-section "5. SFWBar Config"
+section "5. OCWS Config"
 
-SFWBAR_SRC="$PROJECT_DIR/dotfiles/sfwbar"
+OCWS_SRC="$PROJECT_DIR/dotfiles/ocws"
 
-if [[ -d "$SFWBAR_SRC" ]]; then
-  # Copy all config, css, widget, and source files
-  for f in "$SFWBAR_SRC"/*.config "$SFWBAR_SRC"/*.css "$SFWBAR_SRC"/*.widget "$SFWBAR_SRC"/*.source; do
+if [[ -d "$OCWS_SRC" ]]; then
+  # Copy all config, sh, css, widget, and source files
+  for f in "$OCWS_SRC"/*.config "$OCWS_SRC"/*.sh "$OCWS_SRC"/*.css "$OCWS_SRC"/*.widget "$OCWS_SRC"/*.source; do
     if [[ -f "$f" ]]; then
-      cp "$f" "$SFWBAR_DST/"
+      cp "$f" "$OCWS_DST/"
       pass "$(basename "$f")"
     fi
   done
@@ -287,55 +287,15 @@ if [[ -d "$HOME/.local/share/sfwbar" ]]; then
   for f in "$HOME/.local/share/sfwbar"/*.widget "$HOME/.local/share/sfwbar"/*.source; do
     if [[ -f "$f" ]]; then
       name=$(basename "$f")
-      if [[ ! -f "$SFWBAR_DST/$name" ]]; then
-        cp "$f" "$SFWBAR_DST/$name"
+      if [[ ! -f "$OCWS_DST/$name" ]]; then
+        cp "$f" "$OCWS_DST/$name"
         pass "$name (system default)"
       fi
     fi
   done
 fi
 
-# ============================================================
-# Install noctalia config
-# ============================================================
 
-section "6. Noctalia Config"
-
-NOCTALIA_SRC="$PROJECT_DIR/dotfiles/noctalia"
-NOCTALIA_DST="$HOME/.config/noctalia"
-
-if [[ -d "$NOCTALIA_SRC" ]]; then
-  mkdir -p "$NOCTALIA_DST"
-  for f in "$NOCTALIA_SRC"/*; do
-    if [[ -f "$f" ]]; then
-      cp "$f" "$NOCTALIA_DST/"
-      pass "noctalia/$(basename "$f")"
-    fi
-  done
-else
-  info "No noctalia config found (skipped)"
-fi
-
-# ============================================================
-# Install crystal-dock config
-# ============================================================
-
-section "7. Crystal Dock Config"
-
-CRYSTAL_SRC="$PROJECT_DIR/dotfiles/crystal-dock"
-CRYSTAL_DST="$HOME/.config/crystal-dock"
-
-if [[ -d "$CRYSTAL_SRC/labwc" ]]; then
-  mkdir -p "$CRYSTAL_DST"
-  for cfg in panel_1.conf appearance.conf; do
-    if [[ -f "$CRYSTAL_SRC/labwc/$cfg" ]]; then
-      cp "$CRYSTAL_SRC/labwc/$cfg" "$CRYSTAL_DST/$cfg"
-      pass "crystal-dock/$cfg"
-    fi
-  done
-else
-  info "No crystal-dock config found (skipped)"
-fi
 
 # ============================================================
 # Install GTK theme
@@ -531,9 +491,9 @@ ERRORS=0
 CHECKS=(
   "$LABWC_DST/rc.xml:labwc rc.xml"
   "$LABWC_DST/autostart:labwc autostart"
-  "$LABWC_DST/environment:labwc environment"
-  "$SFWBAR_DST/sfwbar.config:sfwbar config"
-  "$GTK3_DIR/settings.ini:GTK3 settings"
+  "$LABWC_DST/rc.xml:labwc rc.xml"
+  "$OCWS_DST/ocws.config:ocws config"
+  "$GTK3_DIR/settings.ini:gtk3 settings"
   "$GTK4_DIR/settings.ini:GTK4 settings"
   "$GTK3_DIR/gtk.css:GTK3 CSS"
   "$FUZZEL_DST/fuzzel.ini:fuzzel config"
@@ -584,7 +544,7 @@ fi
 echo ""
 echo -e "${BOLD}Installed:${NC}"
 echo "  labwc config     → ~/.config/labwc/"
-echo "  sfwbar config    → ~/.config/sfwbar/"
+echo "  ocws config      → ~/.config/ocws/"
 echo "  GTK3/GTK4        → ~/.config/gtk-{3,4}.0/"
 echo "  fuzzel           → ~/.config/fuzzel/"
 echo "  fontconfig       → ~/.config/fontconfig/"

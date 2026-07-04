@@ -1,0 +1,167 @@
+#Api2
+
+# -------------------------------------------------------------------
+# OCWS Control Center Widget
+# Unified menu for Volume, Brightness, Network, Bluetooth, Power
+# -------------------------------------------------------------------
+
+# Data Sources
+file("/bin/sh -c 'wpctl get-volume @DEFAULT_SINK@ 2>/dev/null'") { XVolRaw = Grab(First) }
+Set XVolLevel = Val(RegEx("Volume: ([0-9.]+)", XVolRaw)) * 100
+Set XVolMuted = RegEx("MUTED", XVolRaw)
+
+file("/bin/sh -c 'brightnessctl -m | cut -d, -f4 | tr -d % 2>/dev/null || echo 100'") { XBrightness = Val(Grab(First)) }
+
+file("/bin/sh -c 'cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | head -1 || echo 100'") { XBatteryLevel = Val(Grab(First)) }
+
+file("/bin/sh -c 'nmcli -t -f STATE g 2>/dev/null || echo unknown'") { XNetState = Grab(First) }
+file("/bin/sh -c 'rfkill check bluetooth -J 2>/dev/null | grep unblocked >/dev/null && echo On || echo Off'") { XBtState = Grab(First) }
+
+# -------------------------------------------------------------------
+# The Button (On the Bar)
+# -------------------------------------------------------------------
+export button "ocws-control-center" {
+  interval = 3000
+  style = "module_pill"
+  class = "module"
+  tooltip = "OCWS Control Center"
+  action = PopUp("OCWSControlCenter")
+
+  grid {
+    style = "pill_grid"
+    label { value = "󰤨 " + If(XNetState="connected", "WiFi", "Offline") }
+    label { value = "  󰂯 " + XBtState }
+    label { value = "  󰁹 " + Str(XBatteryLevel, 0) + "%" }
+  }
+}
+
+# -------------------------------------------------------------------
+# The Popup (Control Center)
+# -------------------------------------------------------------------
+PopUp("OCWSControlCenter") {
+  style = "detail_popup"
+  
+  grid {
+    style = "control_center_grid"
+
+    # Header
+    label {
+      value = "Control Center"
+      style = "detail_header"
+    }
+
+    # Volume Row
+    grid {
+      style = "cc_row"
+      label { value = If(XVolMuted, "󰝟", "󰕾"); style = "cc_icon" }
+      scale {
+        style = "detail_slider"
+        value = XVolLevel
+        min = 0
+        max = 100
+        action = Exec("/bin/sh -c 'wpctl set-volume @DEFAULT_SINK@ " + Str($value/100, 2) + "'")
+      }
+    }
+
+    # Brightness Row
+    grid {
+      style = "cc_row"
+      label { value = "󰃠"; style = "cc_icon" }
+      scale {
+        style = "detail_slider"
+        value = XBrightness
+        min = 0
+        max = 100
+        action = Exec("brightnessctl set " + Str($value, 0) + "%")
+      }
+    }
+
+    # Toggles Grid (2 columns)
+    grid {
+      style = "cc_toggles"
+      button { 
+        value = If(XNetState="connected", "󰤨  WiFi On", "󰤭  WiFi Off") 
+        action = Exec("actions.sh network toggle")
+        style = If(XNetState="connected", "cc_toggle_active", "cc_toggle")
+      }
+      button { 
+        value = If(XBtState="On", "󰂯  BT On", "󰂲  BT Off") 
+        action = Exec("actions.sh bluetooth toggle")
+        style = If(XBtState="On", "cc_toggle_active", "cc_toggle")
+      }
+    }
+
+    # Power Actions
+    grid {
+      style = "cc_toggles"
+      button { value = "󰌾  Lock"; action = Exec("actions.sh session lock"); style="cc_toggle" }
+      button { value = "󰐥  Power"; action = Exec("actions.sh session menu"); style="cc_toggle_active_red" }
+    }
+  }
+}
+
+#CSS
+/* Control Center Specific CSS */
+grid.control_center_grid {
+  margin: 5px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(30, 30, 46, 0.85); /* Slightly less translucent than the bar */
+  -GtkWidget-direction: bottom;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  min-width: 320px;
+}
+
+grid.cc_row {
+  -GtkWidget-direction: right;
+  margin: 10px 0px;
+}
+
+label.cc_icon {
+  font-size: 18px;
+  min-width: 32px;
+  color: #cdd6f4;
+}
+
+scale.detail_slider {
+  -GtkWidget-hexpand: true;
+  margin: 0px 8px;
+}
+
+grid.cc_toggles {
+  -GtkWidget-direction: right;
+  -GtkWidget-homogeneous: true;
+  margin-top: 12px;
+}
+
+button.cc_toggle {
+  background-color: rgba(69, 71, 90, 0.4);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 4px;
+  font-weight: bold;
+}
+button.cc_toggle:hover { background-color: rgba(69, 71, 90, 0.7); }
+
+button.cc_toggle_active {
+  background-color: rgba(137, 180, 250, 0.25);
+  color: #89b4fa;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 4px;
+  font-weight: bold;
+  border: 1px solid rgba(137, 180, 250, 0.3);
+}
+button.cc_toggle_active:hover { background-color: rgba(137, 180, 250, 0.4); }
+
+button.cc_toggle_active_red {
+  background-color: rgba(243, 139, 168, 0.25);
+  color: #f38ba8;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 4px;
+  font-weight: bold;
+  border: 1px solid rgba(243, 139, 168, 0.3);
+}
+button.cc_toggle_active_red:hover { background-color: rgba(243, 139, 168, 0.4); }
