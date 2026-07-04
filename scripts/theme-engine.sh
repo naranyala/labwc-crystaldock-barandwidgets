@@ -105,18 +105,37 @@ expand_vars() {
             local val="${INI_VALUES[$key]}"
             local new_val="$val"
 
-            # Replace ${section.key} references
-            local regex='\$\{([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\}'
+            # Replace ${section.key} or ${key} references (defaulting to colors.key)
+            local regex='\$\{([a-zA-Z0-9_]+)(\.[a-zA-Z0-9_]+)?\}'
             while [[ "$new_val" =~ $regex ]]; do
-                local ref_section="${BASH_REMATCH[1]}"
-                local ref_key="${BASH_REMATCH[2]}"
+                local ref_part1="${BASH_REMATCH[1]}"
+                local ref_part2="${BASH_REMATCH[2]:-}"
+                
+                local ref_section
+                local ref_key
+                
+                if [[ -z "$ref_part2" ]]; then
+                    # No dot, assume colors section
+                    ref_section="colors"
+                    ref_key="$ref_part1"
+                else
+                    # Has dot, e.g. section.key
+                    ref_section="$ref_part1"
+                    ref_key="${ref_part2#.}"
+                fi
+                
                 local ref_val="${INI_VALUES[${ref_section}.${ref_key}]:-}"
 
                 if [[ -n "$ref_val" ]]; then
-                    new_val="${new_val//\$${ref_section}.${ref_key}/$ref_val}"
+                    if [[ -z "$ref_part2" ]]; then
+                        new_val="${new_val//\$\{${ref_key}\}/$ref_val}"
+                    else
+                        new_val="${new_val//\$\{${ref_section}.${ref_key}\}/$ref_val}"
+                    fi
                     changed=true
                 else
                     warn "Undefined reference: \${${ref_section}.${ref_key}} in $key"
+                    break # prevent infinite loop on undefined reference
                 fi
             done
 
@@ -163,6 +182,18 @@ render_template() {
                     OCWS_SHADOW)     var_value=$(ini_get "ocws.shadow" "4") ;;
                     ICON_THEME)      var_value=$(ini_get "icons.theme" "") ;;
                     FONT_MONO)       var_value=$(ini_get "fonts.mono" "Noto Sans Mono CJK SC:hilight=Filled") ;;
+                    THEMERC_FONT)        var_value=$(ini_get "labwc.themerc_font" "sans 10") ;;
+                    THEMERC_ACTIVE_BG)   var_value=$(ini_get "labwc.themerc_active_bg" "#1e1e2e") ;;
+                    THEMERC_ACTIVE_TEXT) var_value=$(ini_get "labwc.themerc_active_text" "#cdd6f4") ;;
+                    THEMERC_INACTIVE_BG) var_value=$(ini_get "labwc.themerc_inactive_bg" "#181825") ;;
+                    THEMERC_INACTIVE_TEXT) var_value=$(ini_get "labwc.themerc_inactive_text" "#a6adc8") ;;
+                    BORDER_WIDTH)        var_value=$(ini_get "labwc.border_width" "1") ;;
+                    THEMERC_BORDER)      var_value=$(ini_get "labwc.themerc_border" "#45475a") ;;
+                    THEMERC_HEIGHT)      var_value=$(ini_get "labwc.themerc_height" "28") ;;
+                    OSD_BG)              var_value=$(ini_get "labwc.osd_bg" "#1e1e2e") ;;
+                    OSD_BORDER)          var_value=$(ini_get "labwc.osd_border" "#45475a") ;;
+                    OSD_TEXT)            var_value=$(ini_get "labwc.osd_text" "#cdd6f4") ;;
+                    OSD_ACCENT)          var_value=$(ini_get "labwc.osd_accent" "#89b4fa") ;;
                     *) warn "Unknown template variable: {{$var_name}}" ;;
         esac
 
