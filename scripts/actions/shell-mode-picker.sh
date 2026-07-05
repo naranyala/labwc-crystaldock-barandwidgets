@@ -4,23 +4,22 @@
 
 set -euo pipefail
 
-CFG="$HOME/.config/labwc-widgets/shell-mode"
+CFG="$HOME/.config/ocws/mode"
 mkdir -p "$(dirname "$CFG")"
 
-CURRENT="$(cat "$CFG" 2>/dev/null || echo sfwbar-plus)"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo noctalia)"
 
 # Define available modes with descriptions
 declare -A MODES=(
+    ["noctalia"]="  Noctalia Shell — Full-featured shell (default)"
     ["sfwbar-plus"]="  OCWS Full — Dual panel with dock, desktop widgets, all features"
     ["sfwbar"]="  OCWS Minimal — Single top panel, lightweight"
-    ["noctalia"]="  Noctalia Shell — External shell (legacy)"
-    ["crystal"]="  Crystal Dock — External dock (legacy)"
-    ["both"]="  SFwBar + Crystal — Both panels (legacy)"
+    ["crystal"]="  Crystal Dock — External dock"
 )
 
 # Build fuzzel input: current mode marker + all modes
 OPTIONS=""
-for mode in "sfwbar-plus" "sfwbar" "noctalia" "crystal" "both"; do
+for mode in "noctalia" "sfwbar-plus" "sfwbar" "crystal"; do
     desc="${MODES[$mode]}"
     if [ "$mode" = "$CURRENT" ]; then
         OPTIONS="${OPTIONS} [active] ${desc}\n"
@@ -47,11 +46,10 @@ fi
 # Parse the selected mode
 NEW_MODE=""
 case "$SELECTED" in
+    *"Noctalia"*)      NEW_MODE="noctalia" ;;
     *"OCWS Full"*)     NEW_MODE="sfwbar-plus" ;;
     *"OCWS Minimal"*)  NEW_MODE="sfwbar" ;;
-    *"Noctalia"*)      NEW_MODE="noctalia" ;;
     *"Crystal Dock"*)  NEW_MODE="crystal" ;;
-    *"SFwBar + Crystal"*) NEW_MODE="both" ;;
     *) exit 1 ;;
 esac
 

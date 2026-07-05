@@ -8,12 +8,12 @@ set -euo pipefail
 CFG="$HOME/.config/labwc-widgets/shell-mode"
 mkdir -p "$(dirname "$CFG")"
 
-# If no argument, read current or default to noctalia
+# If no argument, read current or default to dms
 if [ -z "${1:-}" ]; then
     if [ -f "$CFG" ]; then
         MODE=$(cat "$CFG")
     else
-        MODE="noctalia"
+        MODE="dms"
     fi
 else
     MODE="$1"
@@ -26,10 +26,20 @@ echo "Shell mode: $MODE"
 pkill -x sfwbar 2>/dev/null || true
 pkill -9 -x crystal-dock 2>/dev/null || true
 pkill -9 -x noctalia 2>/dev/null || true
+pkill -9 -x dms 2>/dev/null || true
 sleep 0.5
 
 # Start selected shell
 case "$MODE" in
+    dms)
+        if command -v dms >/dev/null 2>&1; then
+            nohup dms > /dev/null 2>&1 &
+            echo "Started Dank Material Shell (dms)"
+        else
+            echo "error: dms not installed"
+            exit 1
+        fi
+        ;;
     noctalia)
         if command -v noctalia >/dev/null 2>&1; then
             nohup noctalia > /dev/null 2>&1 &
@@ -56,7 +66,7 @@ case "$MODE" in
             echo "Started OCWS Top Panel (sfwbar)"
         fi
         ;;
-    both|double_panel)
+    sfwbar-plus)
         if command -v sfwbar >/dev/null 2>&1; then
             nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
             echo "Started OCWS Dual Panel (sfwbar)"
@@ -66,7 +76,7 @@ case "$MODE" in
         fi
         ;;
     *)
-        echo "error: unknown mode '$MODE'. Valid: noctalia, crystal, both"
+        echo "error: unknown mode '$MODE'. Valid: dms, noctalia, sfwbar-plus, crystal"
         echo "Usage: $0 <mode>"
         exit 1
         ;;

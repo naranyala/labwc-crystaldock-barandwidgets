@@ -7,8 +7,8 @@ When generating configurations for the `foot` terminal emulator, users encounter
 ## The Cause
 There were two strict syntax rules in `foot`'s configuration that were being violated by the generated template:
 1. **Hex Color Format**: `foot` requires RGB hex colors to be specified **without** the `#` prefix (e.g., `1e1e2e` instead of `#1e1e2e`).
-2. **Colors Section Naming**: `foot` expects the section containing terminal color definitions to be explicitly named `[colors]`. It does not support arbitrary section names like `[colors-dark]`.
+2. **Colors Section Naming**: `foot` now expects the section containing terminal color definitions to be explicitly named `[colors-dark]` (or `[colors-light]`). The previously used `[colors]` section name is deprecated and will result in a warning.
 
 ## The Solution
-- Updated the template `templates/foot.ini.tmpl` to use the correct `[colors]` section header.
+- Updated the template `templates/foot.ini.tmpl` to use the correct `[colors-dark]` section header.
 - Added parsing logic in `scripts/theme-engine.sh` to automatically strip `#` prefixes from any variables destined for the `foot` configuration (i.e. variables prefixed with `color_`).

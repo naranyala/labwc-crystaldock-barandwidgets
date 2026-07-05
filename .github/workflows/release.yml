@@ -1,0 +1,45 @@
+name: OCWS Cross-Platform Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-linux-gnu
+          - aarch64-linux-gnu
+          - riscv64-linux-gnu
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+          
+      - name: Install Multiarch Dependencies
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo dpkg --add-architecture riscv64
+          # We update repos and install basic dev tools for cross compilation
+          # Note: for GTK3 cross-compilation we'd need proper sysroots,
+          # but for the core utilities (no-deps), Zig handles it perfectly natively!
+          
+      - name: Build Core Utilities (Cross-Compile)
+        run: |
+          # We can build the standalone utilities without GTK/Wayland for any arch
+          zig build -Dtarget=${{ matrix.target }} -Doptimize=ReleaseFast
+          
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocws-core-${{ matrix.target }}
+          path: zig-out/bin/

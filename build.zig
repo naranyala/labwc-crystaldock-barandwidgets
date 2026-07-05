@@ -11,6 +11,33 @@ pub fn build(b: *std.Build) void {
         "-O2",
     };
 
+    // === Unified Binary (Zig harness) ===
+    {
+        const exe = b.addExecutable(.{
+            .name = "ocws",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+                .root_source_file = b.path("src/ocws.zig"),
+            }),
+        });
+
+        b.installArtifact(exe);
+
+        // Tests
+        const tests = b.addTest(.{
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .root_source_file = b.path("src/tests.zig"),
+            }),
+        });
+        const run_tests = b.addRunArtifact(tests);
+        const test_step = b.step("test", "Run integration tests");
+        test_step.dependOn(&run_tests.step);
+    }
+
     // Single-file C utilities (no external deps)
     const c_utils = [_][]const u8{
         "ocws-shot",
@@ -20,6 +47,8 @@ pub fn build(b: *std.Build) void {
         "ocws-brightness",
         "ocws-volume",
         "ocws-recorder",
+        "ocws-emit",
+        "ocws-search",
     };
 
     for (c_utils) |util_name| {

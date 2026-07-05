@@ -747,6 +747,105 @@ sfwbar -R "GetVal XVolLevel" | grep -q "75"
 
 ---
 
+---
+
+## Phase 8: Zig Superpowers & Next-Gen Distribution
+
+*Status: IN PROGRESS*
+
+Because OCWS already uses `build.zig` as its build system, we have unlocked capabilities far beyond traditional C/Make projects. This phase outlines how we can leverage Zig to make OCWS a robust, standalone, deploy-anywhere Wayland shell.
+
+### 8a. Unified Binary (Single Entry Point)
+- [x] Merge all 15 `ocws-*` binaries into one `ocws` with subcommands (`ocws shot`, `ocws clip`, `ocws volume`, `ocws kv set/get`)
+- [x] Reduces install footprint from 15 binaries to 1
+- [x] Shared initialization code (logging, config loading) in one place
+- [x] Migration: `ocws shot` still calls same C code, just different entry point
+
+### 8b. Static Binaries (Zero-Dependency Distribution)
+- [x] Build with `-Dtarget=x86_64-linux-musl` for fully static binaries
+- [x] Single binary file, no package manager required for end-users
+- [ ] Distribute via `curl | tar` or AppImage without runtime deps
+- [ ] Test: verify static binary runs on fresh Ubuntu/Arch/Fedora without installing anything
+
+### 8c. Cross-Compilation (ARM / RISC-V / WASM)
+- [x] Add CI pipeline: `zig build -Dtarget=aarch64-linux-gnu` for Raspberry Pi 4/5
+- [x] Add CI pipeline: `zig build -Dtarget=riscv64-linux-gnu` for RISC-V boards
+- [ ] Add CI pipeline: `zig build -Dtarget=wasm32-wasi` for browser-based widgets
+- [x] One-command cross-compile: no cross-gcc, no multilib, no sysroot hacking
+- [ ] Target: OCWS runs on PinePhone, Librem 5, StarFive VisionFive
+
+### 8d. Zig-Native Modules (Incremental Rewrite)
+- [ ] Rewrite config parser (`theme-engine.sh` → `ocws-theme.zig`) using Zig's comptime parsing
+- [ ] Rewrite event loop (`ocws-daemon.sh` → `ocws-brokerd.zig`) with memory-safe async
+- [ ] Use `@cImport()` to seamlessly call existing C code from Zig modules
+- [ ] Error unions (`!void`) prevent memory leaks in new code
+- [ ] `defer` statements for automatic cleanup (no manual `free()` calls)
+
+### 8e. Compile-Time Asset Embedding (`comptime`)
+- [ ] Use `@embedFile()` to bake default configs, icons, themes into binary
+- [ ] Binary becomes self-sufficient — no missing `/usr/share/ocws/` failures
+- [ ] Fallback config embedded: if `~/.config/ocws/` missing, use built-in defaults
+- [ ] Theme templates embedded: generate themes without external template files
+
+### 8f. Build-From-Source Package Manager
+- [ ] Single `build.zig.zon` fetches all C dependencies automatically
+- [ ] No `-dev` packages required: `zig build` fetches wayland, gtk, tesseract headers
+- [ ] Reproducible builds: same Zig version = identical binaries everywhere
+- [ ] `zig build -Drelease` for optimized release builds
+- [ ] `zig build test` runs C unit tests via Zig's test runner
+
+### 8g. Testing Framework (C Unit Tests via Zig) - DONE
+- [x] Add `test "backlight easing" { ... }` blocks in C files using `@import("std").testing`
+- [x] `zig build test` runs all C unit tests in one pass
+- [x] No separate test framework (no cmocka, no check) — Zig handles it
+- [ ] CI integration: tests must pass before merge
+
+### 8h. SIMD Optimizations (Hot Paths)
+- [ ] Rewrite image processing in `ocws-color.c` (median-cut palette extraction) using Zig SIMD
+- [ ] Rewrite OCR preprocessing in `ocws-ocr.c` (grayscale, threshold) with vectorized ops
+- [ ] Rewrite wallpaper blur/transitions in `ocws-live-bg.c` with SIMD
+- [ ] 4-8x speedup for image operations on x86_64/ARM NEON
+
+### 8i. Nightly Auto-Builds (GitHub Actions)
+- [x] GitHub Actions workflow: build for x86_64, aarch64, riscv64 on every push
+- [x] Artifacts: static binaries attached to each release
+- [ ] Automated testing: boot test on QEMU ARM before release
+- [ ] `nightly.ocws.dev` with latest binaries
+
+### 8j. Plugin System (Dynamic Loading)
+- [ ] Zig handles `.so` loading: `std.dynamic_loader.openLib()`
+- [ ] User plugins in `~/.config/ocws/plugins/*.so`
+- [ ] Plugin API: `ocws_plugin_init()`, `ocws_plugin_destroy()`, `ocws_plugin_emit()`
+- [ ] Sandboxed execution: plugins can't crash main process
+
+### 8k. WASM Plugins (Sandboxed User Scripts)
+- [ ] Build `ocws-wasm-runner` targeting `wasm32-wasi`
+- [ ] User scripts in `~/.config/ocws/scripts/*.wasm`
+- [ ] Sandboxed: no filesystem/network access unless explicitly granted
+- [ ] Use case: custom widgets, data transformers, AI inference
+
+### 8l. Fast Incremental Builds
+- [ ] Zig tracks C file changes at function level — only recompile changed functions
+- [ ] `zig build` finishes in <2s for incremental builds (vs 30s+ with make)
+- [ ] Developer workflow: edit → build → test in <3 seconds
+
+### 8m. Cross-Dependency Fetching (build.zig.zon)
+- [x] Declare all C deps in `build.zig.zon`:
+  ```zig
+  .{
+      .name = "ocws",
+      .dependencies = .{
+          .wayland = .{ .url = "https://...", .hash = "..." },
+          .gtk = .{ .url = "https://...", .hash = "..." },
+          .tesseract = .{ .url = "https://...", .hash = "..." },
+      },
+  }
+  ```
+- [x] `zig build` fetches, compiles, links — no system packages needed
+- [x] Reproducible: same `build.zig.zon` = same build on any machine
+
+---
+
 ## Risk Mitigation
 
 1. **Delete legacy cruft** before adding new features
@@ -767,3 +866,4 @@ sfwbar -R "GetVal XVolLevel" | grep -q "75"
 | Phase 5 | Ecosystem enrichment | Foundation Laid |
 | Phase 6 | Architecture abstractions | Partial (3 delivered, 2 skipped) |
 | Phase 7 | Bash enrichment & C rewrite | Planning |
+| Phase 8 | Zig superpowers & next-gen distribution | Planning |

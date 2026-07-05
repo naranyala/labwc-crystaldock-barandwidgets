@@ -197,6 +197,10 @@ render_template() {
                     OSD_BORDER)          var_value=$(ini_get "labwc.osd_border" "#45475a") ;;
                     OSD_TEXT)            var_value=$(ini_get "labwc.osd_text" "#cdd6f4") ;;
                     OSD_ACCENT)          var_value=$(ini_get "labwc.osd_accent" "#89b4fa") ;;
+                    OSD_INACTIVE)        var_value=$(ini_get "labwc.osd_inactive" "#6c7086") ;;
+                    OSD_WORKSPACE_TEXT)      var_value=$(ini_get "labwc.osd_workspace_text" "#1e1e2e") ;;
+                    OSD_WORKSPACE_ACTIVE_TEXT)  var_value=$(ini_get "labwc.osd_workspace_active_text" "#1e1e2e") ;;
+                    OSD_WORKSPACE_INACTIVE_TEXT) var_value=$(ini_get "labwc.osd_workspace_inactive_text" "#6c7086") ;;
                     *)
                         if [[ "$var_name" == FOOT_* ]]; then
                             local foot_key="${var_name#FOOT_}"

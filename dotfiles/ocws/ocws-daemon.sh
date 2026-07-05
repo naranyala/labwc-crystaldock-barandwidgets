@@ -4,7 +4,7 @@
 # Event-driven IPC for sfwbar - No more polling!
 # -------------------------------------------------------------------
 
-set -uo pipefail
+set -euo pipefail
 
 # Stop any previously running instances, excluding this process
 _MY_PID=$$

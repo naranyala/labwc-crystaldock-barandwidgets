@@ -7,6 +7,21 @@
 
 set -euo pipefail
 
+# Default installation mode: 'labwc-dms' (labwc + Dank Material Shell)
+# Available modes:
+#   labwc-dms : Core labwc + OCWS shell (recommended)
+#   full      : Includes legacy shells (Noctalia, Crystal Dock)
+MODE="labwc-dms"
+
+# Parse command-line arguments
+for arg in "$@"; do
+    case "$arg" in
+        --mode=*)
+            MODE="${arg#*=}"
+            ;;
+    esac
+done
+
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -66,7 +81,13 @@ fi
 
 # 1.5 Confirmation Prompt
 echo -e "\n${YELLOW}⚠ WARNING: This will deploy configurations to ~/.config/ and ~/.local/bin/${NC}"
-echo -e "  Affected directories: labwc, ocws, fuzzel, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar, crystal-dock, noctalia"
+if [[ "$MODE" == "labwc-dms" ]]; then
+    echo -e "  Mode: ${CYAN}labwc + dms (Dank Material Shell)${NC}"
+    echo -e "  Affected directories: labwc, ocws, fuzzel, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar"
+else
+    echo -e "  Mode: ${CYAN}full${NC}"
+    echo -e "  Affected directories: labwc, ocws, fuzzel, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar, crystal-dock, noctalia"
+fi
 echo -n "  Are you sure you want to proceed? [y/N]: "
 read -r confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
@@ -96,7 +117,10 @@ rsync -a --exclude='user.config' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>
 if [ ! -f ~/.config/ocws/user.config ]; then
     cp "$SCRIPT_DIR/dotfiles/ocws/user.config" ~/.config/ocws/user.config 2>/dev/null || true
 fi
-pass "OCWS layout and plugins synced."
+
+# Record the installed mode in system configuration
+echo "$MODE" > ~/.config/ocws/mode
+pass "OCWS layout, plugins, and mode ($MODE) synced."
 
 # 5. Deploy Fuzzel Launcher
 if [ -d "$SCRIPT_DIR/dotfiles/fuzzel" ]; then
@@ -149,14 +173,14 @@ if [ -d "$SCRIPT_DIR/dotfiles/qt6ct" ]; then
 fi
 
 # Deploy crystal-dock
-if [ -d "$SCRIPT_DIR/dotfiles/crystal-dock" ]; then
+if [[ "$MODE" == "full" ]] && [ -d "$SCRIPT_DIR/dotfiles/crystal-dock" ]; then
     info "Deploying crystal-dock configuration..."
     rsync -a "$SCRIPT_DIR/dotfiles/crystal-dock/" ~/.config/crystal-dock/ 2>/dev/null || true
     pass "crystal-dock config synced."
 fi
 
 # Deploy noctalia
-if [ -d "$SCRIPT_DIR/dotfiles/noctalia" ]; then
+if [[ "$MODE" == "full" ]] && [ -d "$SCRIPT_DIR/dotfiles/noctalia" ]; then
     info "Deploying noctalia configuration..."
     mkdir -p ~/.config/noctalia
     rsync -a "$SCRIPT_DIR/dotfiles/noctalia/" ~/.config/noctalia/ 2>/dev/null || true
@@ -239,7 +263,7 @@ validate_file_format() {
                 warn "crudini not available for INI validation of $target"
                 return 0
             fi
-            crudini --inplace test "$target" >/dev/null 2>&1 || {
+            crudini --get "$target" >/dev/null 2>&1 || {
                 echo -e "  ${RED}✗${NC} Invalid INI format: $target"
                 return 1
             }
@@ -411,6 +435,7 @@ fi
 # 9. Success
 info "OCWS Deployment Complete! 🚀"
 echo -e "\n${CYAN}=== Quick Install Complete ===${NC}"
+echo -e "  Installed Mode: ${GREEN}$MODE${NC}"
 echo -e "${CYAN}  Note:${NC} You must manually install labwc, sfwbar, and fuzzel first."
 echo -e "  Use ./install-distribution.sh for automatic distro detection and installation."
 echo -e "\n${CYAN}  Next Steps:${NC}"

@@ -62,7 +62,7 @@ shell=$SHELL
 [scrollback]
 lines=10000
 
-[colors]
+[colors-dark]
 alpha=0.92
 background=0f0f19
 foreground=cdd6f4

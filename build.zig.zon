@@ -1,0 +1,23 @@
+.{
+    .name = .ocws,
+    .version = "0.1.0",
+    .fingerprint = 0xa1e28287223edcd4,
+
+    // This makes the project a true Zig module that can be consumed by other projects,
+    // and prepares it for remote dependency fetching (Wayland, GTK, Tesseract, Cairo)
+    .dependencies = .{
+        // Future Wayland Zig bindings will go here
+        // .wayland = .{
+        //     .url = "...",
+        //     .hash = "...",
+        // },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "README.md",
+        "LICENSE",
+    },
+}

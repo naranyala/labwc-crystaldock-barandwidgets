@@ -2,9 +2,10 @@
 # Uses fuzzel to select shell mode
 
 declare -A MODES=(
-    ["1. Noctalia (Default)"]="noctalia"
-    ["2. SFWBar + Crystal Dock"]="crystal"
-    ["3. SFWBar Dual Panel"]="both"
+    ["1. Dank Material Shell (Default)"]="dms"
+    ["2. Noctalia (Legacy)"]="noctalia"
+    ["3. SFWBar + Crystal Dock"]="crystal"
+    ["4. SFWBar Dual Panel"]="both"
 )
 
 # Generate list for fuzzel

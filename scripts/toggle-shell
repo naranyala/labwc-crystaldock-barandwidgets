@@ -1,62 +1,33 @@
 #!/bin/bash
-# toggle-shell — Switch between shell modes: ocws-only, sfwbar-plus, and legacy modes
+# toggle-shell — Switch between shell modes: noctalia, sfwbar-plus, sfwbar, crystal
 
 set -euo pipefail
 
-CFG="$HOME/.config/labwc-widgets/shell-mode"
+CFG="$HOME/.config/ocws/mode"
 mkdir -p "$(dirname "$CFG")"
 
-# API: Support both old and new mode names
 if [ -n "${1:-}" ]; then
     MODE="$1"
 
-    # Map old mode names to new ones with deprecation warnings
-    if [ "$MODE" = "noctalia" ]; then
-        echo "⚠️  WARNING: 'noctalia' mode is deprecated. Use 'sfwbar-plus' for equivalent functionality."
-        echo "   Noctalia features are being incorporated into sfwbar-plus."
-        MODE="sfwbar-plus"
-    elif [ "$MODE" = "crystal" ]; then
-        echo "⚠️  WARNING: 'crystal' mode is deprecated. Use 'sfwbar-plus' for enhanced features."
-        echo "   Crystal-dock features are being incorporated into sfwbar-plus."
-        MODE="sfwbar-plus"
-    elif [ "$MODE" = "both" ]; then
-        echo "⚠️  WARNING: 'both' mode is deprecated. Use 'sfwbar-plus' for unified shell with both panels."
-        echo "   The dual-panel configuration is now part of 'sfwbar-plus' mode."
-        MODE="sfwbar-plus"
-    fi
-
-    # Validate mode
-    if [ "$MODE" != "sfwbar" ] && [ "$MODE" != "sfwbar-plus" ] && [ "$MODE" != "noctalia" ] && [ "$MODE" != "crystal" ] && [ "$MODE" != "both" ]; then
+    if [ "$MODE" != "dms" ] && [ "$MODE" != "noctalia" ] && [ "$MODE" != "sfwbar-plus" ] && [ "$MODE" != "sfwbar" ] && [ "$MODE" != "crystal" ]; then
         echo "Usage: $0 <mode>"
         echo ""
         echo "Modes:"
-        echo "  sfwbar-plus  labwc + enhanced OCWS with rich shell features (default)"
-        echo "  sfwbar       labwc + sfwbar only (minimal OCWS)"
-        echo ""
-        echo "Legacy modes (mapped to sfwbar-plus):"
+        echo "  dms          labwc + dankmaterialshell (default)"
         echo "  noctalia     labwc + noctalia shell"
+        echo "  sfwbar-plus  labwc + enhanced OCWS dual panel"
+        echo "  sfwbar       labwc + sfwbar only (minimal OCWS)"
         echo "  crystal      labwc + crystal-dock only"
-        echo "  both         labwc + both sfwbar + crystal-dock"
         exit 1
     fi
 
     NEW="$MODE"
 else
-    # Auto-switch: legacy config backward compatibility
-    if [ -f "$CFG" ]; then
-        CURRENT=$(cat "$CFG")
-        if [ "$CURRENT" = "both" ] || [ "$CURRENT" = "noctalia" ] || [ "$CURRENT" = "crystal" ]; then
-            echo "🔄 Migration: "$CURRENT" mode detected -> switching to sfwbar-plus"
-            NEW="sfwbar-plus"
-            echo "$NEW" > "$CFG"
-            exit 0
-        fi
-    fi
     echo "Usage: $0 <mode>"
     exit 1
 fi
 
-CURRENT="$(cat "$CFG" 2>/dev/null || echo noctalia)"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo dms)"
 
 echo "Current shell mode: $CURRENT"
 echo "Switching to: $NEW"
@@ -78,11 +49,36 @@ if pgrep -x noctalia >/dev/null; then
     pkill -x noctalia
 fi
 
+if pgrep -x dms >/dev/null; then
+    echo "Stopping dms..."
+    pkill -x dms
+fi
+
 sleep 0.3
 
 # Start new configuration
 case "$NEW" in
-    sfwbar-plus|noctalia|both)
+    dms)
+        echo "Starting dms..."
+        if command -v dms >/dev/null 2>&1; then
+            nohup dms >/dev/null 2>&1 &
+            echo "Started dms"
+        else
+            echo "error: dms not installed"
+            exit 1
+        fi
+        ;;
+    noctalia)
+        echo "Starting noctalia..."
+        if command -v noctalia >/dev/null 2>&1; then
+            nohup noctalia >/dev/null 2>&1 &
+            echo "Started noctalia"
+        else
+            echo "error: noctalia not installed"
+            exit 1
+        fi
+        ;;
+    sfwbar-plus)
         echo "Starting OCWS (sfwbar-plus mode)..."
         if command -v ocws-plugin-loader.sh >/dev/null 2>&1; then
             ocws-plugin-loader.sh
@@ -107,14 +103,6 @@ case "$NEW" in
 esac
 
 # Update configuration
-if [ -f "$CFG" ]; then
-    if grep -q "^$CURRENT" "$CFG"; then
-        sed -i "s/^$CURRENT\$/$NEW/" "$CFG"
-    else
-        echo "$NEW" > "$CFG"
-    fi
-else
-    echo "$NEW" > "$CFG"
-fi
+echo "$NEW" > "$CFG"
 
 echo "✅ Shell mode switched to: $NEW"

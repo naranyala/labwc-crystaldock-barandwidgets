@@ -33,14 +33,13 @@
     <!-- System -->
     <keybind key="A-r"><action name="Reconfigure"/></keybind>
     <keybind key="W-r">
-      <action name="Reconfigure"/>
-      <action name="Execute"><command>sh -c '~/.config/labwc/autostart'</command></action>
+      <action name="Execute"><command>shell-switcher.sh</command></action>
     </keybind>
     <keybind key="A-q"><action name="Close"/></keybind>
     <keybind key="A-F4"><action name="Close"/></keybind>
     <keybind key="W-m"><action name="Execute"><command>vlc</command></action></keybind>
-    <keybind key="W-s"><action name="Execute"><command>shell-mode-picker.sh</command></action></keybind>
-    <!-- <keybind key="W-m"><action name="Exit"/></keybind> -->
+    <keybind key="W-S-s"><action name="Execute"><command>shell-mode-picker.sh</command></action></keybind>
+
 
     <!-- Launchers -->
     <keybind key="A-Return"><action name="Execute"><command>foot</command></action></keybind>
@@ -116,8 +115,8 @@
     <!-- Quick Settings -->
     <keybind key="C-S-n"><action name="Execute"><command>~/.config/labwc/autostart &amp; gammastep -m randr -t 6500:3500 -g 1.0 -r || pkill -x gammastep</command></action></keybind>
 
-    <!-- Toggle Shell -->
-    <keybind key="W-s"><action name="Execute"><command>toggle-shell</command></action></keybind>
+    <!-- Web Search -->
+    <keybind key="W-s"><action name="Execute"><command>ocws search</command></action></keybind>
 
     <!-- App Launcher Variants -->
 

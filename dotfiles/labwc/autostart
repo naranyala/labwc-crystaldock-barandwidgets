@@ -2,8 +2,8 @@
 #
 # labwc autostart — runs once at compositor startup
 #
-# Default shell: noctalia
-# Alternative:   crystal-dock, sfwbar (use toggle-shell to switch)
+# Default shell: dms
+# Alternative:   noctalia, crystal-dock, sfwbar (use toggle-shell to switch)
 #
 
 # Ensure local binaries are in PATH
@@ -46,13 +46,15 @@ if command -v toggle-shell >/dev/null 2>&1; then
     MODE="$(cat "$HOME/.config/labwc-widgets/shell-mode")"
     toggle-shell "$MODE"
   else
-    toggle-shell sfwbar-plus
+    toggle-shell dms
   fi
 elif command -v shell-switcher.sh >/dev/null 2>&1; then
   shell-switcher.sh
 else
-  echo "warning: no shell switcher found, starting sfwbar directly"
-  if command -v sfwbar >/dev/null 2>&1; then
+  echo "warning: no shell switcher found, starting dms directly"
+  if command -v dms >/dev/null 2>&1; then
+    nohup dms > /dev/null 2>&1 &
+  elif command -v sfwbar >/dev/null 2>&1; then
     nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
   fi
 fi
@@ -96,4 +98,15 @@ if command -v swayidle >/dev/null 2>&1; then
     timeout 300 'swaylock -f -c 000000' \
     timeout 360 'wlr-randr --output eDP-1 --off' resume 'wlr-randr --output eDP-1 --on' \
     before-sleep 'swaylock -f -c 000000' &
+fi
+
+# --- Autorun Programs ---
+if command -v ocws-autorun.sh >/dev/null 2>&1; then
+  ocws-autorun.sh &
+elif [ -f "$HOME/.config/labwc/autorun.conf" ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="$(echo "$line" | sed 's/#.*//' | xargs)"
+    [ -z "$line" ] && continue
+    nohup $line > /dev/null 2>&1 &
+  done < "$HOME/.config/labwc/autorun.conf"
 fi

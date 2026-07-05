@@ -9,7 +9,7 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONTRACT="$PROJECT_DIR/contracts/variables.ini"
-EMIT_SCRIPT="$PROJECT_DIR/scripts/ocws-emit.sh"
+EMIT_SCRIPT="$PROJECT_DIR/src/ocws-emit.c"
 WIDGET_DIR="$PROJECT_DIR/dotfiles/ocws"
 
 RED='\033[0;31m'
@@ -50,7 +50,7 @@ done < "$CONTRACT"
 
 # Check emit script has all contract variables
 while IFS= read -r line; do
-    if [[ "$line" =~ ENGINE_VAR=\"([^\"]+)\" ]]; then
+    if [[ "$line" =~ return[[:space:]]*\"([^\"]+)\" ]]; then
         var="${BASH_REMATCH[1]}"
         # Skip the catch-all passthrough and variable references
         [[ "$var" == '\$'* || "$var" == *'$'* ]] && continue
@@ -62,7 +62,7 @@ done < "$EMIT_SCRIPT"
 
 # Check contract variables are in emit script
 for var in "${!contract_vars[@]}"; do
-    if ! grep -q "ENGINE_VAR=\"$var\"" "$EMIT_SCRIPT" 2>/dev/null; then
+    if ! grep -q "return \"$var\"" "$EMIT_SCRIPT" 2>/dev/null; then
         fail "Contract declares '$var' but emit script doesn't map it"
     fi
 done

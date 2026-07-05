@@ -34,7 +34,7 @@ for bin in labwc sfwbar fuzzel foot; do
     fi
 done
 
-for bin in ocws-sysmon ocws-clip ocws-shot ocws-lock ocws-kv ocws-brightness ocws-volume ocws-notify ocws-wallpaper ocws-color; do
+for bin in ocws-sysmon ocws-clip ocws-shot ocws-lock ocws-kv ocws-brightness ocws-volume ocws-notify ocws-wallpaper ocws-color ocws-emit ocws; do
     if [[ -x "$LOCAL_BIN/$bin" ]]; then
         pass "$bin installed"
     else
@@ -113,7 +113,7 @@ echo ""
 
 # --- 7. Scripts ---
 echo "[7/8] Scripts"
-for script in ocws-emit.sh ocws-daemon.sh ocws-plugin-loader.sh theme-engine.sh; do
+for script in ocws-daemon.sh ocws-plugin-loader.sh theme-engine.sh; do
     if [[ -x "$LOCAL_BIN/$script" ]] || [[ -x "$LOCAL_BIN/actions/$script" ]]; then
         pass "Script installed: $script"
     else
