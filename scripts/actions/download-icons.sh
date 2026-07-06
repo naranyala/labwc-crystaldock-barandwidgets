@@ -26,13 +26,13 @@ REPOS=(
     ["Layan"]="https://github.com/vinceliuice/Layan-icon-theme.git"
 )
 
-# Generate list for fuzzel
+# Generate list for rofi
 LIST=""
 for theme in "${!REPOS[@]}"; do
     LIST="$LIST$theme\n"
 done
 
-CHOSEN=$(echo -e "$LIST" | fuzzel -d -p "Download Icon Theme: " -l 10)
+CHOSEN=$(echo -e "$LIST" | rofi -dmenu -p "Download Icon Theme: " -l 10)
 
 if [ -z "$CHOSEN" ]; then
     exit 0

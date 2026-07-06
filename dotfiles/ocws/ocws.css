@@ -191,17 +191,16 @@ button.taskbar_item.urgent {
 }
 
 button.taskbar_item image {
-  min-height: 20px;
-  min-width: 20px;
-  padding: 0px 4px 0px 0px;
+  min-height: 28px;
+  min-width: 28px;
+  padding: 0px;
   -GtkWidget-valign: center;
 }
 
 button.taskbar_item label {
-  font-size: 11px;
-  color: inherit;
+  font-size: 0px;
+  color: transparent;
   padding: 0px;
-  padding-left: 4px;
 }
 
 /* ============================================================

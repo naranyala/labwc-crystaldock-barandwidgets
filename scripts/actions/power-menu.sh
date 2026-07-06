@@ -30,10 +30,8 @@ show_menu() {
     "  Cancel"
   )
 
-  if command -v fuzzel &>/dev/null; then
-    choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Power ❯ " -w 20 -l 7)
-  elif command -v rofi &>/dev/null; then
-    choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Power" -theme-str 'window {width: 200px;}')
+  if command -v rofi &>/dev/null; then
+    choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Power ❯ " -theme-str 'window {width: 200px;}')
   elif command -v wofi &>/dev/null; then
     choice=$(printf '%s\n' "${opts[@]}" | wofi --dmenu -p "Power")
   else

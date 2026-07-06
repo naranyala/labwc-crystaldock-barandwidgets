@@ -4,9 +4,9 @@
     <action name="Execute"><command>foot</command></action>
   </item>
   <item label="Applications Launcher">
-    <action name="Execute"><command>fuzzel</command></action>
+    <action name="Execute"><command>rofi -show drun</command></action>
   </item>
-  <item label="Dotfiles Hub (Fuzzel Menu)">
+  <item label="Dotfiles Hub (Rofi Menu)">
     <action name="Execute"><command>actions.sh dotfiles-menu</command></action>
   </item>
   <menu id="apps" label="All Applications" execute="obamenu" />
@@ -32,10 +32,10 @@
     <item label="Wallpaper (Randomize)"><action name="Execute"><command>wallpaper random</command></action></item>
   </menu>
 
-  <!-- FUZZEL UTILITIES -->
-  <menu id="fuzzel-utilities" label="Fuzzel Tools">
-    <item label="Emoji Picker"><action name="Execute"><command>actions.sh fuzzel-emoji</command></action></item>
-    <item label="Calculator"><action name="Execute"><command>actions.sh fuzzel-calc</command></action></item>
+  <!-- ROFI UTILITIES -->
+  <menu id="rofi-utilities" label="Rofi Tools">
+    <item label="Emoji Picker"><action name="Execute"><command>actions.sh rofi-emoji</command></action></item>
+    <item label="Calculator"><action name="Execute"><command>actions.sh rofi-calc</command></action></item>
     <item label="Clipboard History"><action name="Execute"><command>actions.sh clipboard show</command></action></item>
     <item label="WiFi Manager"><action name="Execute"><command>actions.sh wifi-menu</command></action></item>
     <item label="Bluetooth Manager"><action name="Execute"><command>actions.sh bluetooth-menu</command></action></item>

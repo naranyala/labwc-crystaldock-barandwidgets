@@ -5,6 +5,9 @@
 
 set -euo pipefail
 
+# Ensure local and package manager binaries are in PATH
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
+
 CFG="${1:-$HOME/.config/labwc/autorun.conf}"
 LOG="/tmp/ocws-autorun.log"
 

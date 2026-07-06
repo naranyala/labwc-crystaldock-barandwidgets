@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # wifi-menu.sh
-# A fuzzel-based Wi-Fi menu using nmcli
+# A rofi-based Wi-Fi menu using nmcli
 # Part of the OCWS Bash Utility Collection
 
 notify_msg() {
@@ -20,8 +20,8 @@ if [ -z "$NETWORKS" ]; then
     exit 1
 fi
 
-# Show fuzzel menu
-CHOSEN_NETWORK=$(echo -e "Toggle Wi-Fi\n$NETWORKS" | fuzzel -d -p "Wi-Fi: " -l 10)
+# Show rofi menu
+CHOSEN_NETWORK=$(echo -e "Toggle Wi-Fi\n$NETWORKS" | rofi -dmenu -p "Wi-Fi: " -theme-str 'window {width: 400px;}')
 
 if [ -z "$CHOSEN_NETWORK" ]; then
     exit 0
@@ -49,7 +49,7 @@ if echo "$SAVED_CONNECTIONS" | grep -qw "$CHOSEN_ID"; then
 else
     # Prompt for password if secured
     if [[ "$CHOSEN_NETWORK" == *""* ]]; then
-        WIFI_PASSWORD=$(fuzzel -d -p "Password for $CHOSEN_ID: ")
+        WIFI_PASSWORD=$(rofi -dmenu -p "Password for $CHOSEN_ID: " -password -theme-str 'window {width: 400px;}')
         if [ -z "$WIFI_PASSWORD" ]; then
             notify_msg "Connection aborted."
             exit 1

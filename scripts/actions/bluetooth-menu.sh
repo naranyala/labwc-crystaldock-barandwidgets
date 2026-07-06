@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bluetooth-menu.sh
-# A fuzzel-based Bluetooth menu using bluetoothctl
+# A rofi-based Bluetooth menu using bluetoothctl
 # Part of the OCWS Bash Utility Collection
 
 notify_msg() {
@@ -14,7 +14,7 @@ notify_msg() {
 POWER_STATE=$(bluetoothctl show | grep "Powered: yes")
 
 if [ -z "$POWER_STATE" ]; then
-    CHOICE=$(echo -e "Turn On" | fuzzel -d -p "Bluetooth is Off: ")
+    CHOICE=$(echo -e "Turn On" | rofi -dmenu -p "Bluetooth is Off: " -theme-str 'window {width: 400px;}')
     if [ "$CHOICE" = "Turn On" ]; then
         bluetoothctl power on
         notify_msg "Bluetooth Enabled"
@@ -35,7 +35,7 @@ if [ -z "$DEVICES" ]; then
     exit 0
 fi
 
-CHOSEN=$(echo -e "Turn Off\n$DEVICES" | fuzzel -d -p "Bluetooth: " -l 10)
+CHOSEN=$(echo -e "Turn Off\n$DEVICES" | rofi -dmenu -p "Bluetooth: " -theme-str 'window {width: 400px;}')
 
 if [ -z "$CHOSEN" ]; then
     exit 0

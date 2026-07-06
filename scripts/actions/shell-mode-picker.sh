@@ -1,5 +1,5 @@
 #!/bin/bash
-# shell-mode-picker.sh — Fuzzel-based interactive shell mode picker
+# shell-mode-picker.sh — Rofi-based interactive shell mode picker
 # Keybinding: Super+S
 
 set -euo pipefail
@@ -18,7 +18,7 @@ declare -A MODES=(
     ["crystal"]="  Crystal Dock — External dock"
 )
 
-# Build fuzzel input: current mode marker + all modes
+# Build rofi input: current mode marker + all modes
 OPTIONS=""
 for mode in "dms" "noctalia" "sfwbar-plus" "sfwbar" "crystal"; do
     desc="${MODES[$mode]}"
@@ -29,8 +29,8 @@ for mode in "dms" "noctalia" "sfwbar-plus" "sfwbar" "crystal"; do
     fi
 done
 
-# Launch fuzzel dmenu mode
-SELECTED=$(echo -e "$OPTIONS" | fuzzel --dmenu \
+# Launch rofi dmenu mode
+SELECTED=$(echo -e "$OPTIONS" | rofi -dmenu \
     --prompt="Shell Mode: " \
     --width=50 \
     --lines=6 \

@@ -1,0 +1,602 @@
+/*
+ * settings-tabs.c — Tab Builder Functions
+ * Implementation of all settings panel tabs.
+ */
+
+#include "settings-ui.h"
+#include "settings-tabs.h"
+#include <stdlib.h>
+#include <string.h>
+
+// ============================================================
+// Tab: Shell Modes
+// ============================================================
+
+GtkWidget* build_shell_tab(void) {
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 30);
+
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title), "<span size='x-large' weight='bold'>Select Shell Experience</span>");
+    gtk_label_set_xalign(GTK_LABEL(title), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), title, FALSE, FALSE, 0);
+
+    GtkWidget *flowbox = gtk_flow_box_new();
+    gtk_widget_set_valign(flowbox, GTK_ALIGN_START);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flowbox), 4);
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flowbox), GTK_SELECTION_NONE);
+
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("OCWS", "Our C-Written Shell (default)", "dms", "preferences-desktop-symbolic"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Dank Material", "Material Design 3 integrated shell", "dms", "view-app-grid-symbolic"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Noctalia", "Minimalist plugin-driven shell", "noctalia", "weather-clear-night-symbolic"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Crystal Dock", "SFWBar + bottom macOS style dock", "crystal", "computer-apple-symbolic"), -1);
+
+    gtk_box_pack_start(GTK_BOX(vbox), flowbox, TRUE, TRUE, 0);
+    return vbox;
+}
+
+// ============================================================
+// Tab: Appearance
+// ============================================================
+
+static void on_theme_color_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    const char *theme = (const char *)data;
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd), "theme-engine.sh apply %s &", theme);
+    system(cmd);
+}
+
+GtkWidget* build_appearance_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Theme Colors (always visible)
+    GtkWidget *card = create_card("Theme Colors", "🎨");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+
+    const char *theme_ids[] = {
+        "catppuccin-mocha", "dracula", "everforest", "flexoki", "gruvbox",
+        "kanagawa", "nord", "one-dark", "rose-pine", "solarized-dark"
+    };
+    const char *theme_colors[] = {
+        "#cba6f7", "#bd93f9", "#a7c080", "#af3029", "#fe8019",
+        "#7e9cd8", "#81a1c1", "#61afef", "#ebbcba", "#b58900"
+    };
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 8);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
+    gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 0);
+
+    for (int i = 0; i < 10; i++) {
+        GtkWidget *color_btn = gtk_button_new();
+        GtkStyleContext *ctx = gtk_widget_get_style_context(color_btn);
+        gtk_widget_set_size_request(color_btn, 32, 32);
+        gtk_widget_set_tooltip_text(color_btn, theme_ids[i]);
+
+        char css[256];
+        snprintf(css, sizeof(css), "* { background-color: %s; border-radius: 16px; }", theme_colors[i]);
+        GtkCssProvider *provider = gtk_css_provider_new();
+        gtk_css_provider_load_from_data(provider, css, -1, NULL);
+        gtk_style_context_add_provider(ctx, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        g_signal_connect_data(color_btn, "clicked", G_CALLBACK(on_theme_color_clicked), (gpointer)theme_ids[i], NULL, 0);
+        gtk_grid_attach(GTK_GRID(grid), color_btn, i % 5, i / 5, 1, 1);
+    }
+
+    // Icon Theme (collapsible, starts collapsed)
+    card = create_collapsible_card("Icon Theme", "📁", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    GtkWidget *content = get_collapsible_content(card);
+    GtkWidget *icon_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget *icon_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(icon_combo), "Papirus-Dark");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(icon_combo), "Papirus-Light");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(icon_combo), "Tela-dark");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(icon_combo), "Colloid-dark");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(icon_combo), 0);
+    gtk_widget_set_hexpand(icon_combo, TRUE);
+    GtkWidget *icon_apply = gtk_button_new_with_label("Apply");
+    gtk_box_pack_start(GTK_BOX(icon_row), icon_combo, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(icon_row), icon_apply, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), icon_row, FALSE, FALSE, 0);
+
+    // Cursor Theme (collapsible, starts collapsed)
+    card = create_collapsible_card("Cursor Theme", "🖱️", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    GtkWidget *cursor_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget *cursor_combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cursor_combo), "Catppuccin-Mocha-Dark");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cursor_combo), "Catppuccin-Mocha-Light");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(cursor_combo), "Bibata-Modern-Classic");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(cursor_combo), 0);
+    gtk_widget_set_hexpand(cursor_combo, TRUE);
+    GtkWidget *cursor_apply = gtk_button_new_with_label("Apply");
+    gtk_box_pack_start(GTK_BOX(cursor_row), cursor_combo, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(cursor_row), cursor_apply, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), cursor_row, FALSE, FALSE, 0);
+
+    // Font Scaling (always visible)
+    card = create_card("Font Scaling", "🔤");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_slider_row("UI Scale", 100, 50, 200, "%", "font-scale.sh %d &"), FALSE, FALSE, 0);
+
+    // Compositor Effects (collapsible, starts collapsed)
+    card = create_collapsible_card("Compositor Effects", "✨", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Window Gaps", 10, 0, 40, "px", "ocws-kv set theme window_gaps %d; labwc -r &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Corner Radius", 12, 0, 30, "px", "ocws-kv set theme corner_radius %d; labwc -r &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_live_toggle_row("Window Blur", "Enable background blur for transparent windows", TRUE, "ocws-kv set theme window_blur 1; labwc -r &", "ocws-kv set theme window_blur 0; labwc -r &"), FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Bar Configuration
+// ============================================================
+
+GtkWidget* build_bar_config_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Position (always visible)
+    GtkWidget *card = create_card("Bar Position", "📐");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    const char *positions[] = {"Top", "Bottom", "Left", "Right"};
+    gtk_box_pack_start(GTK_BOX(card), create_button_group("Position", positions, 4, 0), FALSE, FALSE, 0);
+
+    // Size & Spacing (collapsible, starts expanded)
+    card = create_collapsible_card("Size & Spacing", "📏", TRUE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    GtkWidget *content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Bar Thickness", 32, 24, 64, "px"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Edge Spacing", 4, 0, 32, "px"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Widget Padding", 8, 0, 32, "px"), FALSE, FALSE, 0);
+
+    // Transparency (collapsible, starts collapsed)
+    card = create_collapsible_card("Transparency", "👁️", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Bar Opacity", 100, 0, 100, "%"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Widget Opacity", 100, 0, 100, "%"), FALSE, FALSE, 0);
+
+    // Corners (collapsible, starts collapsed)
+    card = create_collapsible_card("Corners & Background", "🔲", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Corner Radius", 12, 0, 24, "px"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("Square Corners", "Remove rounded corners", FALSE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("No Background", "Transparent bar background", FALSE), FALSE, FALSE, 0);
+
+    // Visibility (collapsible, starts collapsed)
+    card = create_collapsible_card("Visibility", "👁️", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("Auto-hide", "Hide when not hovering", FALSE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Hide Delay", 250, 0, 2000, "ms"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("Scroll Switching", "Switch workspace with scroll", TRUE), FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Widgets
+// ============================================================
+
+GtkWidget* build_widgets_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Presets
+    GtkWidget *card = create_card("Widget Presets", "⚡");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    const char *presets[] = {"Standard", "Full", "Minimal", "Custom"};
+    gtk_box_pack_start(GTK_BOX(card), create_button_group("Preset", presets, 4, 1), FALSE, FALSE, 0);
+
+    // Widget List
+    card = create_collapsible_card("Widgets", "📦", TRUE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    GtkWidget *content = get_collapsible_content(card);
+    const char *widgets[] = {
+        "Launcher", "Workspaces", "Clock", "Volume", "Battery",
+        "Network", "Bluetooth", "Tray", "Dock", "Media",
+        "System Monitor", "Weather", "Night Light", "Power Profile", "Quick Settings",
+        "Clipboard", "Keybinds", "Keyboard Layout", "Show Desktop", "Notification Center"
+    };
+    for (int i = 0; i < 20; i++) {
+        gtk_box_pack_start(GTK_BOX(content), create_toggle_row(widgets[i], NULL, TRUE), FALSE, FALSE, 0);
+    }
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Workspaces
+// ============================================================
+
+GtkWidget* build_workspaces_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    GtkWidget *card = create_card("Workspace Settings", "🖥️");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_slider_row("Count", 5, 1, 12, ""), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("Show Names", "Display workspace names instead of numbers", FALSE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("App Icons", "Show running app icons in workspace", TRUE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("Scroll Switch", "Switch workspace with scroll wheel", TRUE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("Drag Reorder", "Drag to reorder workspaces", TRUE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("Follow Focus", "Bar shows focused workspace", FALSE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_toggle_row("Occupied Only", "Hide empty workspaces", FALSE), FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Notifications
+// ============================================================
+
+GtkWidget* build_notifications_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Daemon (always visible)
+    GtkWidget *card = create_card("Notification Daemon", "🔔");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    const char *daemons[] = {"Mako", "Dunst", "OCWS Native", "Disable"};
+    gtk_box_pack_start(GTK_BOX(card), create_button_group("Daemon", daemons, 4, 0), FALSE, FALSE, 0);
+
+    // Behavior (collapsible, starts expanded)
+    card = create_collapsible_card("Behavior", "⚙️", TRUE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    GtkWidget *content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Timeout", 5, 1, 30, "s"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Max Visible", 5, 1, 10, ""), FALSE, FALSE, 0);
+
+    // Appearance (collapsible, starts collapsed)
+    card = create_collapsible_card("Appearance", "🎨", FALSE);
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    content = get_collapsible_content(card);
+    gtk_box_pack_start(GTK_BOX(content), create_slider_row("Border Radius", 8, 0, 24, "px"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("Actions", "Show action buttons in notifications", TRUE), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_toggle_row("Persistence", "Save notification history", TRUE), FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Diagnostics
+// ============================================================
+
+static void on_refresh_health(GtkWidget *btn, gpointer textview) {
+    (void)btn;
+    load_healthcheck(GTK_WIDGET(textview));
+}
+
+GtkWidget* build_diagnostics_tab(void) {
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 30);
+
+    // Header
+    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget *lbl = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(lbl), "<span size='large' weight='bold'>System Diagnostics</span>");
+    GtkWidget *refresh_btn = gtk_button_new_from_icon_name("view-refresh-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(header), lbl, TRUE, TRUE, 0);
+    gtk_box_pack_end(GTK_BOX(header), refresh_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), header, FALSE, FALSE, 0);
+
+    // Notebook for different checks
+    GtkWidget *notebook = gtk_notebook_new();
+    gtk_box_pack_start(GTK_BOX(vbox), notebook, TRUE, TRUE, 0);
+
+    // Validation tab
+    GtkWidget *scroll1 = gtk_scrolled_window_new(NULL, NULL);
+    GtkWidget *textview1 = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(textview1), FALSE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(textview1), "terminal");
+    gtk_container_add(GTK_CONTAINER(scroll1), textview1);
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll1, gtk_label_new("Validation"));
+    g_signal_connect(refresh_btn, "clicked", G_CALLBACK(on_refresh_health), textview1);
+
+    // System Info tab
+    GtkWidget *scroll2 = gtk_scrolled_window_new(NULL, NULL);
+    GtkWidget *textview2 = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(textview2), FALSE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(textview2), "terminal");
+    gtk_container_add(GTK_CONTAINER(scroll2), textview2);
+    gtk_notebook_append_page(GTK_NOTEBOOK(notebook), scroll2, gtk_label_new("System Info"));
+    load_system_info(textview2);
+
+    // Auto-load validation
+    load_healthcheck(textview1);
+
+    return vbox;
+}
+
+// ============================================================
+// Tab: Quick Settings
+// ============================================================
+
+GtkWidget* build_quick_settings_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Audio Controls
+    GtkWidget *card = create_card("Audio Controls", "🔊");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_slider_row("Master Volume", 50, 0, 150, "%", "ocws-volume set %d &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_slider_row("Microphone", 80, 0, 100, "%", "wpctl set-volume @DEFAULT_AUDIO_SOURCE@ %d%% &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Mute Output", "Mute all audio output", FALSE, "ocws-volume mute &", "ocws-volume unmute &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Mute Microphone", "Mute audio input", FALSE, "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 1 &", "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ 0 &"), FALSE, FALSE, 0);
+
+    // Display & Brightness
+    card = create_card("Display", "☀️");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_slider_row("Brightness", 75, 0, 100, "%", "ocws-brightness set %d &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Night Light", "Reduce blue light", FALSE, "wlsunset -t 4000 &", "killall wlsunset &"), FALSE, FALSE, 0);
+
+    // Connectivity
+    card = create_card("Connectivity", "📶");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Wi-Fi", "Enable wireless networking", TRUE, "nmcli radio wifi on &", "nmcli radio wifi off &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Bluetooth", "Enable Bluetooth adapters", TRUE, "bluetoothctl power on &", "bluetoothctl power off &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Airplane Mode", "Disable all radios", FALSE, "nmcli radio all off &", "nmcli radio all on &"), FALSE, FALSE, 0);
+
+    // Input & Hardware
+    card = create_card("Input", "🖱️");
+    gtk_box_pack_start(GTK_BOX(vbox), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Natural Scrolling", "Invert scroll direction", TRUE, "toggle-natural-scroll.sh 1 &", "toggle-natural-scroll.sh 0 &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), create_live_toggle_row("Tap to Click", "Touchpad tap to click", TRUE, "toggle-tap-to-click.sh 1 &", "toggle-tap-to-click.sh 0 &"), FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: Keybindings
+// ============================================================
+
+GtkWidget* build_keybinds_tab(void) {
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+    gtk_container_add(GTK_CONTAINER(scroll), vbox);
+
+    // Header with search and actions
+    GtkWidget *header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget *lbl = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(lbl), "<span size='large' weight='bold'>Keybinding Manager</span>");
+    gtk_box_pack_start(GTK_BOX(header), lbl, TRUE, TRUE, 0);
+
+    GtkWidget *search_entry = gtk_search_entry_new();
+    gtk_widget_set_size_request(search_entry, 200, -1);
+    gtk_box_pack_start(GTK_BOX(header), search_entry, FALSE, FALSE, 0);
+
+    GtkWidget *add_btn = gtk_button_new_with_label("+ Add");
+    gtk_box_pack_start(GTK_BOX(header), add_btn, FALSE, FALSE, 0);
+
+    GtkWidget *check_btn = gtk_button_new_with_label("Check Conflicts");
+    gtk_box_pack_start(GTK_BOX(header), check_btn, FALSE, FALSE, 0);
+
+    GtkWidget *reload_btn = gtk_button_new_from_icon_name("view-refresh-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start(GTK_BOX(header), reload_btn, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(vbox), header, FALSE, FALSE, 0);
+
+    // Preset selector
+    GtkWidget *preset_card = create_card("Presets", "📋");
+    gtk_box_pack_start(GTK_BOX(vbox), preset_card, FALSE, FALSE, 0);
+    const char *presets[] = {"Default", "Vim", "Emacs", "Custom"};
+    gtk_box_pack_start(GTK_BOX(preset_card), create_button_group("Preset", presets, 4, 0), FALSE, FALSE, 0);
+
+    // Keybinding list
+    GtkWidget *list_card = create_card("Keybindings", "⌨️");
+    gtk_box_pack_start(GTK_BOX(vbox), list_card, TRUE, TRUE, 0);
+
+    GtkWidget *listbox = gtk_list_box_new();
+    gtk_list_box_set_selection_mode(GTK_LIST_BOX(listbox), GTK_SELECTION_SINGLE);
+    gtk_widget_set_vexpand(listbox, TRUE);
+    gtk_box_pack_start(GTK_BOX(list_card), listbox, TRUE, TRUE, 0);
+
+    // Populate with keybindings from rc.xml
+    const char *home = getenv("HOME");
+    char rc_path[512];
+    snprintf(rc_path, sizeof(rc_path), "%s/.config/labwc/rc.xml", home);
+
+    FILE *fp = fopen(rc_path, "r");
+    if (fp) {
+        char line[1024];
+        while (fgets(line, sizeof(line), fp)) {
+            char *key_start = strstr(line, "key=\"");
+            if (!key_start) continue;
+            key_start += 5;
+            char *key_end = strchr(key_start, '"');
+            if (!key_end) continue;
+
+            char key[64] = {0};
+            int key_len = key_end - key_start;
+            if (key_len > 0 && key_len < (int)sizeof(key)) {
+                strncpy(key, key_start, key_len);
+                key[key_len] = '\0';
+            }
+
+            char *action_start = strstr(line, "name=\"");
+            char action[128] = {0};
+            if (action_start) {
+                action_start += 6;
+                char *action_end = strchr(action_start, '"');
+                if (action_end) {
+                    int action_len = action_end - action_start;
+                    if (action_len > 0 && action_len < (int)sizeof(action)) {
+                        strncpy(action, action_start, action_len);
+                        action[action_len] = '\0';
+                    }
+                }
+            }
+
+            char command[256] = {0};
+            if (strcmp(action, "Execute") == 0) {
+                char *cmd_start = strstr(line, "<command>");
+                if (cmd_start) {
+                    cmd_start += 9;
+                    char *cmd_end = strstr(line, "</command>");
+                    if (cmd_end) {
+                        int cmd_len = cmd_end - cmd_start;
+                        if (cmd_len > 0 && cmd_len < (int)sizeof(command)) {
+                            strncpy(command, cmd_start, cmd_len);
+                            command[cmd_len] = '\0';
+                        }
+                    }
+                }
+            }
+
+            if (key[0]) {
+                char display_key[128];
+                snprintf(display_key, sizeof(display_key), "%s", key);
+                char *p;
+                while ((p = strstr(display_key, "W-")) != NULL) { memmove(p+6, p+2, strlen(p+2)+1); memcpy(p, "Super+", 6); }
+                while ((p = strstr(display_key, "A-")) != NULL) { memmove(p+4, p+2, strlen(p+2)+1); memcpy(p, "Alt+", 4); }
+                while ((p = strstr(display_key, "C-")) != NULL) { memmove(p+5, p+2, strlen(p+2)+1); memcpy(p, "Ctrl+", 5); }
+                while ((p = strstr(display_key, "S-")) != NULL) { memmove(p+6, p+2, strlen(p+2)+1); memcpy(p, "Shift+", 6); }
+
+                GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+                gtk_widget_set_margin_top(row, 4);
+                gtk_widget_set_margin_bottom(row, 4);
+                gtk_widget_set_margin_start(row, 8);
+                gtk_widget_set_margin_end(row, 8);
+
+                char key_markup[256];
+                snprintf(key_markup, sizeof(key_markup), "<span font_family='monospace' weight='bold' foreground='#89b4fa'>%s</span>", display_key);
+                GtkWidget *key_lbl = gtk_label_new(NULL);
+                gtk_label_set_markup(GTK_LABEL(key_lbl), key_markup);
+                gtk_widget_set_size_request(key_lbl, 180, -1);
+                gtk_label_set_xalign(GTK_LABEL(key_lbl), 0.0);
+                gtk_box_pack_start(GTK_BOX(row), key_lbl, FALSE, FALSE, 0);
+
+                GtkWidget *arrow_lbl = gtk_label_new("→");
+                gtk_style_context_add_class(gtk_widget_get_style_context(arrow_lbl), "dim-label");
+                gtk_box_pack_start(GTK_BOX(row), arrow_lbl, FALSE, FALSE, 0);
+
+                char action_markup[256];
+                if (command[0]) {
+                    snprintf(action_markup, sizeof(action_markup), "<b>%s</b>  <span foreground='#a6adc8'>%s</span>", action, command);
+                } else {
+                    snprintf(action_markup, sizeof(action_markup), "<b>%s</b>", action);
+                }
+                GtkWidget *action_lbl = gtk_label_new(NULL);
+                gtk_label_set_markup(GTK_LABEL(action_lbl), action_markup);
+                gtk_label_set_ellipsize(GTK_LABEL(action_lbl), PANGO_ELLIPSIZE_END);
+                gtk_box_pack_start(GTK_BOX(row), action_lbl, TRUE, TRUE, 0);
+
+                GtkWidget *edit_btn = gtk_button_new_from_icon_name("document-edit-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+                gtk_widget_set_valign(edit_btn, GTK_ALIGN_CENTER);
+                gtk_box_pack_start(GTK_BOX(row), edit_btn, FALSE, FALSE, 0);
+
+                GtkWidget *del_btn = gtk_button_new_from_icon_name("edit-delete-symbolic", GTK_ICON_SIZE_SMALL_TOOLBAR);
+                gtk_widget_set_valign(del_btn, GTK_ALIGN_CENTER);
+                gtk_box_pack_start(GTK_BOX(row), del_btn, FALSE, FALSE, 0);
+
+                gtk_list_box_insert(GTK_LIST_BOX(listbox), row, -1);
+            }
+        }
+        fclose(fp);
+    }
+
+    // Bottom actions
+    GtkWidget *btn_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_widget_set_halign(btn_box, GTK_ALIGN_END);
+
+    GtkWidget *import_btn = gtk_button_new_with_label("Import Preset");
+    GtkWidget *export_btn = gtk_button_new_with_label("Export Preset");
+    GtkWidget *validate_btn = gtk_button_new_with_label("Validate");
+    GtkWidget *apply_btn = gtk_button_new_with_label("Apply & Reload");
+    gtk_style_context_add_class(gtk_widget_get_style_context(apply_btn), "suggested-action");
+
+    gtk_box_pack_start(GTK_BOX(btn_box), import_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(btn_box), export_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(btn_box), validate_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(btn_box), apply_btn, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(vbox), btn_box, FALSE, FALSE, 0);
+
+    return scroll;
+}
+
+// ============================================================
+// Tab: About
+// ============================================================
+
+GtkWidget* build_about_tab(void) {
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+    gtk_widget_set_halign(vbox, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(vbox, GTK_ALIGN_CENTER);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 40);
+
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title),
+        "<span size='xx-large' weight='bold'>OCWS</span>\n"
+        "<span size='medium'>Our C-Written Shell</span>");
+    gtk_label_set_use_markup(GTK_LABEL(title), TRUE);
+    gtk_label_set_justify(GTK_LABEL(title), GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(vbox), title, FALSE, FALSE, 0);
+
+    char version_buf[128];
+    snprintf(version_buf, sizeof(version_buf), "Version %s", VERSION);
+    GtkWidget *ver_lbl = gtk_label_new(version_buf);
+    gtk_style_context_add_class(gtk_widget_get_style_context(ver_lbl), "dim-label");
+    gtk_box_pack_start(GTK_BOX(vbox), ver_lbl, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
+
+    GtkWidget *desc = gtk_label_new(
+        "A batteries-included desktop shell built on sfwbar,\n"
+        "inspired by DankMaterialShell and Noctalia.\n"
+        "Written in C for maximum performance and minimal memory usage.");
+    gtk_label_set_line_wrap(GTK_LABEL(desc), TRUE);
+    gtk_label_set_justify(GTK_LABEL(desc), GTK_JUSTIFY_CENTER);
+    gtk_style_context_add_class(gtk_widget_get_style_context(desc), "dim-label");
+    gtk_box_pack_start(GTK_BOX(vbox), desc, FALSE, FALSE, 0);
+
+    GtkWidget *link_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
+    gtk_widget_set_halign(link_box, GTK_ALIGN_CENTER);
+    GtkWidget *github_btn = gtk_button_new_with_label("GitHub");
+    GtkWidget *docs_btn = gtk_button_new_with_label("Documentation");
+    GtkWidget *report_btn = gtk_button_new_with_label("Report Issue");
+    gtk_box_pack_start(GTK_BOX(link_box), github_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(link_box), docs_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(link_box), report_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), link_box, FALSE, FALSE, 0);
+
+    GtkWidget *license = gtk_label_new("MIT License");
+    gtk_style_context_add_class(gtk_widget_get_style_context(license), "dim-label");
+    gtk_box_pack_start(GTK_BOX(vbox), license, FALSE, FALSE, 0);
+
+    return vbox;
+}

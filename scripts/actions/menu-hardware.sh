@@ -11,7 +11,7 @@ opts=(
   "Toggle Bluetooth"
   "Back"
 )
-choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Hardware ❯ " -w 35 -l 9)
+choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Hardware ❯ " -w 35 -l 9)
 case "$choice" in
   *"Increase Volume"*)     "$ACTIONS" audio up-0.5 ;;
   *"Decrease Volume"*)     "$ACTIONS" audio down-0.5 ;;

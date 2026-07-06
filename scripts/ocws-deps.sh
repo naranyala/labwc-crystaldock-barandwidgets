@@ -23,7 +23,7 @@ echo ""
 
 # --- 1. Core Engines ---
 echo "[1/5] Core Engines"
-for cmd in labwc sfwbar fuzzel; do
+for cmd in labwc sfwbar rofi; do
     if command -v "$cmd" &>/dev/null; then
         pass "$cmd: $(which $cmd)"
     else

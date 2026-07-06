@@ -6,7 +6,7 @@ opts=(
   "Toggle Floating Window"
   "Back"
 )
-choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Windows ❯ " -w 35 -l 4)
+choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Windows ❯ " -w 35 -l 4)
 case "$choice" in
   *"Show Desktop") wtype -M win -k d -m win 2>/dev/null || xdotool key super+d 2>/dev/null ;;
   *"Toggle Fullscreen") "$ACTIONS" window fullscreen ;;

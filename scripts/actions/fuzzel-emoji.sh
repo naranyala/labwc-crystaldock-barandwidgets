@@ -1,5 +1,5 @@
 #!/bin/bash
-# Simple emoji picker using fuzzel
+# Simple emoji picker using rofi
 
 EMOJI_FILE="$HOME/.cache/emojis.txt"
 EMOJI_URL="https://unicode.org/Public/emoji/15.0/emoji-test.txt"
@@ -19,8 +19,8 @@ if [ ! -f "$EMOJI_FILE" ]; then
 fi
 
 if [ -f "$EMOJI_FILE" ]; then
-    # fuzzel outputs the selected line
-    selected=$(fuzzel -d -p "Emoji: " -w 80 -l 15 < "$EMOJI_FILE")
+    # rofi outputs the selected line
+    selected=$(rofi -dmenu -p "Emoji: " -w 80 -l 15 < "$EMOJI_FILE")
     
     if [ -n "$selected" ]; then
         # The emoji is the first character(s) before space

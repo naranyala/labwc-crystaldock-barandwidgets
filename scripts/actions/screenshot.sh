@@ -94,10 +94,8 @@ show_menu() {
     "  Timer (3s delay)"
   )
 
-  if command -v fuzzel &>/dev/null; then
-    choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Screenshot ❯ " -w 30 -l 6)
-  elif command -v rofi &>/dev/null; then
-    choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Screenshot" -theme-str 'window {width: 300px;}')
+  if command -v rofi &>/dev/null; then
+    choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Screenshot ❯ " -theme-str 'window {width: 300px;}')
   else
     echo "Select mode:"
     select choice in "${opts[@]}"; do break; done

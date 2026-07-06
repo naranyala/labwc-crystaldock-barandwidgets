@@ -24,7 +24,7 @@ pkill sfwbar && sfwbar -f ~/.config/ocws/ocws.config &
 
 | Widget | File | Description | Data Source |
 |--------|------|-------------|-------------|
-| Launcher | `launcher.widget` | App launcher button | Desktop entries via fuzzel |
+| Launcher | `launcher.widget` | App launcher button | Desktop entries via rofi |
 | Workspaces | `workspaces.widget` | Pager-based workspace switcher | Compositor IPC (wlr-workspace) |
 | Clock | `clock.widget` | Time display with calendar popup | Built-in `Time()` |
 | System Tray | `tray.widget` | Tray icons | StatusNotifierItem |

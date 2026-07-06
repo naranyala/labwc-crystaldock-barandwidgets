@@ -67,7 +67,7 @@ create_preset() {
       "A-q": "Close",
       "A-space": "ShowMenu",
       "A-Return": "Execute foot",
-      "A-a": "Execute fuzzel"
+      "A-a": "Execute rofi -show drun"
     ],
     "window_mgmt": [
       "A-f": "ToggleFullscreen",

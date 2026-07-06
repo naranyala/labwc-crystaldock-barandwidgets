@@ -198,19 +198,16 @@ render_template() {
                     OSD_TEXT)            var_value=$(ini_get "labwc.osd_text" "#cdd6f4") ;;
                     OSD_ACCENT)          var_value=$(ini_get "labwc.osd_accent" "#89b4fa") ;;
                     OSD_INACTIVE)        var_value=$(ini_get "labwc.osd_inactive" "#6c7086") ;;
-                    OSD_WORKSPACE_TEXT)      var_value=$(ini_get "labwc.osd_workspace_text" "#cdd6f4") ;;
-                    OSD_WORKSPACE_ACTIVE_TEXT)  var_value=$(ini_get "labwc.osd_workspace_active_text" "#cdd6f4") ;;
-                    OSD_WORKSPACE_INACTIVE_TEXT) var_value=$(ini_get "labwc.osd_workspace_inactive_text" "#6c7086") ;;
                     *)
                         if [[ "$var_name" == FOOT_* ]]; then
                             local foot_key="${var_name#FOOT_}"
                             foot_key="${foot_key,,}"
                             if [[ "$foot_key" == fg ]]; then foot_key="color_foreground"; fi
                             if [[ "$foot_key" == bg ]]; then foot_key="color_background"; fi
-                            if [[ "$foot_key" == cursor ]]; then foot_key="color_cursor"; fi
-                            if [[ "$foot_key" == cursor_text ]]; then foot_key="color_cursor_text"; fi
-                            if [[ "$foot_key" == selection ]]; then foot_key="color_selection"; fi
-                            if [[ "$foot_key" == selection_fg ]]; then foot_key="color_selection_foreground"; fi
+                            if [[ "$foot_key" == cursor_fg ]]; then foot_key="color_cursor_fg"; fi
+                            if [[ "$foot_key" == cursor_bg ]]; then foot_key="color_cursor_bg"; fi
+                            if [[ "$foot_key" == selection_bg ]]; then foot_key="color_selection_bg"; fi
+                            if [[ "$foot_key" == selection_fg ]]; then foot_key="color_selection_fg"; fi
                             if [[ "$foot_key" =~ ^regular_[0-7]$ ]]; then foot_key="color_${foot_key}"; fi
                             if [[ "$foot_key" =~ ^bright_[0-7]$ ]]; then foot_key="color_${foot_key}"; fi
                             var_value=$(ini_get "foot.$foot_key" "")
@@ -294,11 +291,11 @@ declare -A OUTPUT_MAP=(
     [themerc-override.tmpl]="$HOME/.config/labwc/themerc-override"
     [environment.tmpl]="$HOME/.config/labwc/environment"
     [sfwbar.css.tmpl]="$HOME/.config/ocws/theme.css"
+    [tokens.css.tmpl]="$HOME/.config/ocws/tokens.css"
     [rofi.rasi.tmpl]="$HOME/.config/rofi/config.rasi"
     [mako.ini.tmpl]="$HOME/.config/mako/config"
     [foot.ini.tmpl]="$HOME/.config/foot/foot.ini"
     [qt6ct.conf.tmpl]="$HOME/.config/qt6ct/qt6ct.conf"
-    [fuzzel.ini.tmpl]="$HOME/.config/fuzzel/fuzzel.ini"
     [ocws.css.tmpl]="$HOME/.config/ocws/ocws.css"
 )
 
@@ -423,6 +420,15 @@ cmd_apply() {
         ((applied++))
     fi
 
+    # CSS Tokens (single source of truth for colors)
+    local tokens_css
+    tokens_css=$(render_template "$TEMPLATES_DIR/tokens.css.tmpl")
+    if [[ -n "$tokens_css" ]]; then
+        echo "$tokens_css" > "$HOME/.config/ocws/tokens.css"
+        pass "tokens.css"
+        ((applied++))
+    fi
+
     # OCWS Glass CSS
     local ocws_css
     ocws_css=$(render_template "$TEMPLATES_DIR/ocws.css.tmpl")
@@ -465,15 +471,6 @@ cmd_apply() {
     if [[ -n "$qt_conf" ]]; then
         echo "$qt_conf" > "$HOME/.config/qt6ct/qt6ct.conf"
         pass "qt6ct.conf"
-        ((applied++))
-    fi
-
-    # Fuzzel
-    local fuzzel_ini
-    fuzzel_ini=$(render_template "$TEMPLATES_DIR/fuzzel.ini.tmpl")
-    if [[ -n "$fuzzel_ini" ]]; then
-        echo "$fuzzel_ini" > "$HOME/.config/fuzzel/fuzzel.ini"
-        pass "fuzzel.ini"
         ((applied++))
     fi
 

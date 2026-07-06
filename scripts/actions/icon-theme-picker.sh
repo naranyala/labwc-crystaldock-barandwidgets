@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # icon-theme-picker.sh
-# Uses fuzzel to select and apply an icon theme system-wide
+# Uses rofi to select and apply an icon theme system-wide
 # Part of the OCWS Bash Utility Collection
 
 notify_msg() {
@@ -19,7 +19,7 @@ if [ -z "$THEMES" ]; then
     exit 1
 fi
 
-CHOSEN=$(echo "$THEMES" | fuzzel -d -p "Select Icon Theme: " -l 15)
+CHOSEN=$(echo "$THEMES" | rofi -dmenu -p "Select Icon Theme: " -l 15)
 
 if [ -z "$CHOSEN" ]; then
     exit 0

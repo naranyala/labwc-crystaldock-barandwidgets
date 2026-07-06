@@ -5,7 +5,7 @@ export button "launcher" {
   style = "text_widget"
   class = "module"
   tooltip = "Application Launcher"
-  action = Exec("fuzzel")
+  action = Exec("rofi -show drun")
 
   label { value = "  Apps" }
 }

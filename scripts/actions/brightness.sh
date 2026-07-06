@@ -18,14 +18,19 @@ NC='\033[0m'
 pass() { echo -e "${GREEN}✓${NC} $1"; }
 fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
-notify() {
-  local msg="$1"
-  local val="$2"
-  if command -v notify-send &>/dev/null; then
-    notify-send -a "Brightness" -t 2000 -h int:value:"$val" "$msg"
-  fi
-}
+# --- C Native Rewrite (Phase 7b) ---
+if command -v ocws-brightness >/dev/null 2>&1; then
+    case "$MODE" in
+        up|raise) exec ocws-brightness --step "${STEP%\%}" up ;;
+        down|lower) exec ocws-brightness --step "${STEP%\%}" down ;;
+        up-0.5|up-half|up-half-percent|brightness-up-0.5|inc-0.5|increase-0.5) exec ocws-brightness --step 0.5 up ;;
+        down-0.5|down-half|down-half-percent|brightness-down-0.5|dec-0.5|decrease-0.5) exec ocws-brightness --step 0.5 down ;;
+        set) exec ocws-brightness set "${2%\%}" ;;
+        get|status) exec ocws-brightness get ;;
+    esac
+fi
 
+# --- Bash Fallback (Legacy) ---
 get_brightness() {
   if command -v brightnessctl &>/dev/null; then
     brightnessctl -m 2>/dev/null | cut -d',' -f4 | tr -d '%'
@@ -33,6 +38,14 @@ get_brightness() {
     light -G 2>/dev/null | cut -d'.' -f1
   else
     echo "0"
+  fi
+}
+
+notify() {
+  local msg="$1"
+  local val="$2"
+  if command -v notify-send &>/dev/null; then
+    notify-send -a "Brightness" -t 2000 -h int:value:"$val" "$msg"
   fi
 }
 
@@ -105,7 +118,7 @@ case "$MODE" in
 
   help|--help|-h|*)
     echo ""
-    echo "Brightness Control"
+    echo "Brightness Control (C Proxy)"
     echo ""
     echo "Usage: $0 <command> [step]"
     echo ""

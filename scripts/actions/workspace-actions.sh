@@ -27,10 +27,10 @@ info() { echo -e "${CYAN}→${NC} $1"; }
 warn() { echo -e "${YELLOW}⚠${NC} $1"; }
 fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
-# Display flat fuzzel menu
-show_fuzzel_menu() {
-    if ! command -v fuzzel >/dev/null 2>&1; then
-        warn "Fuzzel not found, cannot show interactive menu."
+# Display flat rofi menu
+show_rofi_menu() {
+    if ! command -v rofi >/dev/null 2>&1; then
+        warn "Rofi not found, cannot show interactive menu."
         exit 1
     fi
 
@@ -61,7 +61,7 @@ show_fuzzel_menu() {
         "Settings > Quick Settings"
     )
 
-    local choice=$(printf '%s\n' "${options[@]}" | fuzzel -d -p "Action ❯ " -w 40 -l 15)
+    local choice=$(printf '%s\n' "${options[@]}" | rofi -dmenu -p "Action ❯ " -w 40 -l 15)
 
     case "$choice" in
         "Audio > Volume Up") execute_action "volume-up" ;;
@@ -201,15 +201,15 @@ execute_action() {
         
         # Quick Tools
         launcher|search|find|run)
-            if command -v fuzzel >/dev/null; then
-                fuzzel --config "$HOME/.config/fuzzel/fuzzel.ini"
+            if command -v rofi >/dev/null; then
+                rofi -show drun
             else
-                info "Launchy not available"
+                info "Launcher not available"
             fi
             ;;
         run-cmd|run-command|execute)
-            if command -v fuzzel >/dev/null; then
-                fuzzel --config "$HOME/.config/fuzzel/fuzzel.ini" -p "Run:" --placeholder "Type command..."
+            if command -v rofi >/dev/null; then
+                rofi -show run
             else
                 "$ACTIONS_DIR/launcher.sh" run "$@"
             fi
@@ -228,8 +228,8 @@ execute_action() {
             local SCRIPTS_DIR
             SCRIPTS_DIR="$(dirname "$ACTIONS_DIR")"
             "$SCRIPTS_DIR/theme-engine.sh" list
-            if command -v fuzzel >/dev/null; then
-                selected=$("$SCRIPTS_DIR/theme-engine.sh" list | fuzzel --config "$HOME/.config/fuzzel/fuzzel.ini" --width 50 --height 15 --prompt "🎨 Select Theme:")
+            if command -v rofi >/dev/null; then
+                selected=$("$SCRIPTS_DIR/theme-engine.sh" list | rofi -dmenu -p "🎨 Select Theme: " -theme-str 'window {width: 400px;}')
                 if [[ -n "$selected" ]]; then
                     "$SCRIPTS_DIR/theme-engine.sh" apply "themes/${selected}.ini"
                 fi
@@ -256,13 +256,13 @@ execute_action() {
             fi
             ;;
         help|about|info|manual)
-            show_fuzzel_menu
+            show_rofi_menu
             ;;
         
         # Default action
         *)
             warn "Unknown action: $action"
-            show_fuzzel_menu
+            show_rofi_menu
             ;;
     esac
 }
@@ -274,7 +274,7 @@ shift
 # Main execution logic
 case "$MODE" in
     list|ls|help|--help|-h)
-        show_fuzzel_menu
+        show_rofi_menu
         ;;
     *)
         execute_action "$MODE"

@@ -6,8 +6,8 @@
 # Alternative:   noctalia, crystal-dock, sfwbar (use toggle-shell to switch)
 #
 
-# Ensure local binaries are in PATH
-export PATH="$HOME/.local/bin:$PATH"
+# Ensure local and package manager binaries are in PATH
+export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 
 # --- DBus Update (critical for portals & screensharing) ---
 if command -v dbus-update-activation-environment >/dev/null 2>&1; then

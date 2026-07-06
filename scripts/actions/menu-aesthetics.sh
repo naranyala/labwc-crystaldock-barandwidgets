@@ -6,7 +6,7 @@ opts=(
   "Toggle Night Light"
   "Back"
 )
-choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Aesthetics ❯ " -w 35 -l 5)
+choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Aesthetics ❯ " -w 35 -l 5)
 case "$choice" in
   *"Randomize Wallpaper")
     wallpaper random
@@ -30,7 +30,7 @@ case "$choice" in
     if [[ -z "$_themes_dir" ]]; then
       notify-send -a "Theme" -i dialog-error "Themes Not Found" "Could not locate a themes directory." -t 3000
     else
-      theme_choice=$(ls "$_themes_dir"/*.ini 2>/dev/null | xargs -n 1 basename -s .ini | fuzzel -d -p "Theme ❯ " -w 30 -l 12)
+      theme_choice=$(ls "$_themes_dir"/*.ini 2>/dev/null | xargs -n 1 basename -s .ini | rofi -dmenu -p "Theme ❯ " -w 30 -l 12)
       if [[ -n "$theme_choice" ]]; then
         ~/.local/bin/theme "$theme_choice"
         notify-send -a "Theme" -i applications-graphics "Theme Applied" "Global theme changed to $theme_choice." -t 2000

@@ -46,11 +46,11 @@ button {
   }
 }
 
-# --- App Launcher (Fuzzel) ---
+# --- App Launcher (Rofi) ---
 button {
   style = "dock_app"
   tooltip = "App Launcher"
-  action = Exec("fuzzel")
+  action = Exec("rofi -show drun")
   image {
     icon = "view-app-grid-symbolic"
     css = "* { min-width: 32px; min-height: 32px; }"
@@ -66,10 +66,10 @@ label {
 # --- Settings ---
 button {
   style = "dock_app"
-  tooltip = "Settings"
-  action = Exec("gnome-control-center")
+  tooltip = "OCWS Settings"
+  action = Exec("ocws-settings")
   image {
-    icon = "preferences-system-symbolic"
+    icon = "preferences-desktop-symbolic"
     css = "* { min-width: 32px; min-height: 32px; }"
   }
 }

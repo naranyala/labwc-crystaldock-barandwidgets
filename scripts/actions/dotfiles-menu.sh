@@ -6,7 +6,7 @@ opts=(
   "System & Power ❯"
   "Quick Tools ❯"
 )
-choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "Dotfiles ❯ " -w 30 -l 5)
+choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "Dotfiles ❯ " -w 30 -l 5)
 case "$choice" in
   *"Aesthetics & Themes"*) exec ~/.local/bin/actions/menu-aesthetics.sh ;;
   *"Hardware & Media"*)    exec ~/.local/bin/actions/menu-hardware.sh ;;

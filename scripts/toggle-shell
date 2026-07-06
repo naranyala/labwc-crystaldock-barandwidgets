@@ -8,6 +8,7 @@ mkdir -p "$(dirname "$CFG")"
 
 if [ -n "${1:-}" ]; then
     MODE="$1"
+    MODE="${MODE#labwc-}"
 
     if [ "$MODE" != "dms" ] && [ "$MODE" != "noctalia" ] && [ "$MODE" != "sfwbar-plus" ] && [ "$MODE" != "sfwbar" ] && [ "$MODE" != "crystal" ]; then
         echo "Usage: $0 <mode>"

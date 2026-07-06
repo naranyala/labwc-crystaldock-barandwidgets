@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# ocws-icon-picker — Pick icon theme using fuzzel
+# ocws-icon-picker — Pick icon theme using rofi
 # Lists all available icon themes and lets user select one
 # Updates crystal-dock, GTK3, GTK4, and qt6ct simultaneously
 
@@ -132,7 +132,7 @@ main() {
             themes=$(collect_themes)
             
             local selected
-            selected=$(echo "$themes" | fuzzel -d -p "Icon Theme > " -w 30 -l 15)
+            selected=$(echo "$themes" | rofi -dmenu -p "Icon Theme > " -theme-str 'window {width: 400px;}')
             
             if [[ -n "$selected" ]]; then
                 apply_theme "$selected"
@@ -176,7 +176,7 @@ main() {
             ;;
         
         help|--help|-h)
-            echo "ocws-icon-picker — Pick icon theme using fuzzel"
+            echo "ocws-icon-picker — Pick icon theme using rofi"
             echo ""
             echo "Usage:"
             echo "  $0              Interactive picker (default)"

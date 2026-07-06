@@ -8,7 +8,7 @@ opts=(
   "Power Menu"
   "Back"
 )
-choice=$(printf '%s\n' "${opts[@]}" | fuzzel -d -p "System ❯ " -w 35 -l 6)
+choice=$(printf '%s\n' "${opts[@]}" | rofi -dmenu -p "System ❯ " -w 35 -l 6)
 case "$choice" in
   *"Screenshot Options") "$ACTIONS" screenshot ;;
   *"Toggle Do Not Disturb") "$ACTIONS" settings dnd ;;

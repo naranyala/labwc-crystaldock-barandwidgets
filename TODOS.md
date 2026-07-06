@@ -66,7 +66,7 @@ This document outlines the multi-phase strategy for the development of **OCWS** 
 
 ### 2. Absorb Crystal Dock (Bottom Panel Modernization)
 - [x] **Dock Widget**: Created `dock.widget` with macOS-style magnification effect, pinned app launchers, and running app indicators. Added to bottom bar.
-- [ ] **Taskbar Icon Parity**: Upgrade `sfwbar`'s bottom `taskbar` widget to support high-res icon rendering without text labels.
+- [x] **Taskbar Icon Parity**: Upgrade `sfwbar`'s bottom `taskbar` widget to support high-res icon rendering without text labels.
 - [x] **Mac-like Zoom Animations**: CSS-based magnification via `padding` and `min-width`/`min-height` changes on hover.
 - [x] **App Launchers**: Pinned apps in `dock-apps.widget` with icon buttons and launch actions.
 
@@ -140,8 +140,8 @@ This document outlines the multi-phase strategy for the development of **OCWS** 
 ### GUI Settings Manager
 
 - [x] `ocws-settings` — Native GTK3 configuration popup with Catppuccin theme
-- [ ] Blur toggle, theme switching, layout padding controls
-- [ ] Replace manual `.config` file editing for common options
+- [x] Blur toggle, theme switching, layout padding controls
+- [x] Replace manual `.config` file editing for common options
 
 ### Installer Hardening
 
@@ -157,6 +157,8 @@ This document outlines the multi-phase strategy for the development of **OCWS** 
 - [x] `validate.sh` — Post-install verification (25+ checks)
 - [x] `health-check.sh` — System health diagnostics
 - [x] `fix.sh` --dry-run — Auto-repair broken configs
+- [x] `validate-contract.sh` — Variable contract validation
+- [x] `validate-widgets.sh` — Widget schema validation
 
 ---
 
@@ -321,41 +323,36 @@ IncludeTemplate("text-widget.tmpl", "cpu-text",
 
 **Problem**: `ocws-emit.sh` maps API names → variable names. Widgets read variable names.
 These must match manually. We fixed 4 mismatches this session (battery, memory, disk).
-
-- [x] Create `contracts/variables.ini` declaring every IPC variable:
-  ```ini
-  [system.volume]
-  emit_name = XVolLevel
-  widget_files = volume-text.widget, ocws-control-center.widget
-  ```
-- [ ] Auto-generate `ocws-emit.sh` case statements from the contract
-- [ ] Script to validate: all widget variable references exist in contract
-- [ ] Script to validate: all contract variables are defined by a scanner/source
+### 6g. Variable Contract (Priority 1)
+- [x] Create `contracts/variables.ini` declaring every IPC variable
+- [x] Auto-generate `ocws-emit.sh` case statements from the contract (Rewritten in C)
+- [x] Script to validate: all widget variable references exist in contract
+- [x] Script to validate: all contract variables are defined by a scanner/source
 
 ### 6h. CSS Token Standardization
 
 **Problem**: Colors defined 3 ways: `@define-color` in theme.css, hardcoded hex in ocws.css,
 hardcoded rgba in widget files. Theme changes require editing 3+ files.
 
-- [ ] Create `tokens.css` with all `@define-color` declarations:
+- [x] Create `tokens.css` with all `@define-color` declarations:
   ```css
   @define-color ocws_bg #1e1e2e;
   @define-color ocws_fg #cdd6f4;
   @define-color ocws_accent #89b4fa;
   @define-color ocws_surface_alpha_50 alpha(@ocws_surface, 0.5);
   ```
-- [ ] Update all widget `#CSS` sections to use `@ocws_*` tokens
-- [ ] Update `ocws.config` CSS section to use tokens
-- [ ] Theme engine generates `tokens.css` from INI → single file regeneration
-- [ ] Remove hardcoded hex/rgba from all widget files
+- [x] Update all widget `#CSS` sections to use `@ocws_*` tokens
+- [x] Update `ocws.config` CSS section to use tokens
+- [x] Theme engine generates `tokens.css` from INI → single file regeneration
+- [x] Remove hardcoded hex/rgba from all widget files
 
 ### 6i. Widget Schema & Validation
 
 **Problem**: Widgets repeat scanner → export → popup → CSS pattern with no validation.
 Typos in variable names or PopUp names silently break.
 
-- [ ] Design `widget.schema.json` defining valid widget structure
-- [ ] Create `ocws-validate` CLI that checks:
+- [x] Design `widget.schema.json` defining valid widget structure
+- [x] Create `ocws-validate` CLI that checks:
   - All referenced variables are defined by a scanner
   - All PopUp triggers have matching definitions
   - All CSS classes have matching rules
@@ -550,10 +547,10 @@ Replace performance-critical and frequently-called bash scripts with C implement
 
 | # | Bash Script | Lines | C Binary | Effort | Impact | Risk | Rationale |
 |---|-------------|-------|----------|--------|--------|------|-----------|
-| 1 | `ocws-emit.sh` | ~120 | `ocws-emit` | Low | High | Low | IPC critical path, forked on every event. Trivial C port (socket write) |
+| 1 | `ocws-emit.sh` | ~120 | `ocws-emit` (Done) | Low | High | Low | IPC critical path, forked on every event. Trivial C port (socket write) |
 | 2 | `ocws-daemon.sh` | ~350 | `ocws-brokerd` | High | High | Medium | Event bus loop: inotify + pactl + playerctl. C eliminates race conditions |
-| 3 | `audio.sh` | ~124 | Use `ocws-volume` | Low | High | Low | C binary exists, wire action script to call it directly |
-| 4 | `brightness.sh` | ~119 | Use `ocws-brightness` | Low | High | Low | Same -- call C binary from action script |
+| 3 | `audio.sh` | ~124 | Use `ocws-volume` (Done) | Low | High | Low | C binary exists, wire action script to call it directly |
+| 4 | `brightness.sh` | ~119 | Use `ocws-brightness` (Done) | Low | High | Low | Same -- call C binary from action script |
 | 5 | `theme-engine.sh` | ~636 | `ocws-theme` | High | High | Medium | Largest bash file. INI parser + template renderer + file deployer |
 | 6 | `ocws-plugin-loader.sh` | ~80 | `ocws-plugin` | Low | Medium | Low | Scan dir, generate include list. Simple file I/O |
 | 7 | `network.sh` | ~211 | `ocws-network` | Medium | Medium | Low | nmcli wrapper + BT control. Netlink would be more robust |
@@ -851,6 +848,145 @@ Because OCWS already uses `build.zig` as its build system, we have unlocked capa
 
 ---
 
+## Phase 9: OCWS Settings Panel (GUI Control Center)
+
+*Status: IN PROGRESS*
+
+**Objective**: Build a comprehensive GTK3 settings panel inspired by DMS (DankMaterialShell) and Noctalia, but adapted for OCWS's C + sfwbar architecture. Uses GTK3 native widgets with OCWS CSS styling for glassmorphic appearance.
+
+**Architecture**: `ocws-settings` (GTK3 app) with sidebar navigation + content stack + scrollable cards.
+
+### 9.1 Appearance (Theme Engine)
+- [x] Active theme display with color dots for quick switch
+- [x] Theme category selector (Generic / Auto / Custom / Browse)
+- [x] Color palette grid (10 themes: blue, purple, green, etc.)
+- [x] Matugen scheme dropdown (Tonal Spot, Vibrant, Content, etc.)
+- [x] Wallpaper preview with color extraction
+- [x] Custom theme file picker
+- [x] Icon theme dropdown (Papirus-Dark, etc.)
+- [x] Cursor theme dropdown + size slider
+- [x] Font scaling slider (50-200%)
+
+### 9.2 Bar Configuration (Multi-Bar)
+- [x] Bar list with position/size info (up to 4 bars)
+- [x] Add/delete bar buttons
+- [x] Position selector (Top / Bottom / Left / Right)
+- [x] Display assignment toggle list
+- [x] Size slider (24-64px)
+- [x] Spacing slider (0-32px)
+- [x] Transparency slider (0-100%)
+- [x] Widget transparency slider
+- [x] Corner radius slider (0-24px)
+- [x] Square corners toggle
+- [x] No background toggle
+- [x] Border toggle + color picker
+- [x] Widget outline toggle + color picker
+- [x] Auto-hide toggle + delay slider
+- [x] Scroll behavior dropdown
+- [x] Font/icon scale sliders
+
+### 9.3 Widgets
+- [x] Widget list with enable/disable toggles
+- [x] Widget presets (Standard / Full / Minimal / Custom)
+- [x] Per-widget expandable settings
+- [x] Widget search/filter bar
+
+### 9.4 Workspaces
+- [x] Workspace count slider (1-12)
+- [x] Naming toggle (show names vs numbers)
+- [x] App icons toggle (show running apps)
+- [x] Scroll switching toggle
+- [x] Drag reorder toggle
+- [x] Follow focus toggle
+- [x] Occupied only toggle
+- [x] Padding toggle
+
+### 9.5 Notifications
+- [x] Daemon selector (Mako / Dunst / OCWS Native / Disable)
+- [x] Timeout slider (1-30 seconds)
+- [x] Max visible slider (1-10)
+- [x] Border radius slider
+- [x] Actions toggle
+- [x] Persistence toggle
+
+### 9.6 System Health
+- [x] Validation tab with live output
+- [x] System Info tab (kernel, compositor, memory, disk)
+- [x] Refresh button
+
+### 9.7 Utilities
+- [x] Keybinds preset selector
+- [x] Workspace layout config
+- [x] Network manager actions
+- [x] Audio settings
+- [x] Compositor reload
+- [x] Natural scrolling toggle
+- [x] Backup/restore/sync actions
+
+### 9.8 About
+- [x] Version info
+- [x] Description
+- [x] GitHub/Docs/Report links
+- [x] License
+
+### 9.5 Keybinds
+- [ ] Preset selector (Default / Custom / Vim / Emacs)
+- [ ] Keybind list with search
+- [ ] Edit keybind dialog
+- [ ] Export/import buttons
+- [ ] Reset to defaults button
+
+### 9.6 Notifications
+- [ ] Daemon selector (Mako / Dunst / Disable)
+- [ ] Position dropdown
+- [ ] Timeout slider (1-30 seconds)
+- [ ] Max visible slider (1-10)
+- [ ] Font picker
+- [ ] Border radius slider
+- [ ] Background/text/border color pickers
+
+### 9.7 Display
+- [ ] Monitor list with resolution info
+- [ ] Refresh rate dropdown
+- [ ] Scale dropdown (100%, 125%, 150%, 200%)
+- [ ] Orientation dropdown
+- [ ] Per-monitor wallpaper picker
+
+### 9.8 Audio
+- [ ] Output/input device dropdowns
+- [ ] Volume sliders
+- [ ] Mute toggle
+- [ ] Now playing card with controls
+
+### 9.9 System
+- [ ] Health check button + results display
+- [ ] Dependency check button + results
+- [ ] Validate config button + results
+- [ ] System info card (OS, kernel, compositor, version)
+- [ ] Memory/CPU/Disk usage progress bars
+
+### 9.10 Persistence
+- [ ] Backup button
+- [ ] Restore button + file picker
+- [ ] Git sync button
+- [ ] Theme export/import buttons
+- [ ] Reset all button (danger)
+
+### 9.11 Plugins
+- [ ] Installed plugins toggle list
+- [ ] Plugin browser button
+- [ ] Plugin info card
+- [ ] Install/uninstall buttons
+
+### 9.12 About
+- [ ] OCWS version info
+- [ ] Build info (compiler, flags, date)
+- [ ] Compositor/bar engine versions
+- [ ] Contributors list
+- [ ] License + links
+
+---
+
 ## Risk Mitigation
 
 1. **Delete legacy cruft** before adding new features
@@ -872,3 +1008,22 @@ Because OCWS already uses `build.zig` as its build system, we have unlocked capa
 | Phase 6 | Architecture abstractions | Partial (3 delivered, 2 skipped) |
 | Phase 7 | Bash enrichment & C rewrite | Planning |
 | Phase 8 | Zig superpowers & next-gen distribution | Planning |
+
+## Phase 9: Advanced OCWS Settings Control Center
+- [x] **1. Embedded Quick Settings**
+  - [x] Native Network & Bluetooth toggles within the UI.
+  - [x] Interactive GtkScale sliders for Audio & Media volume.
+  - [x] Built-in Performance Monitor graph (RAM/CPU). (using progress bars in sys info)
+- [x] **2. Live Compositor Theming**
+  - [x] Hypertile Controls (sliders for Gaps, Blur, Corner Radius).
+  - [x] Material Design Color Palette Picker (injects `theme.css` live).
+  - [x] Live Font Scaling via GtkScale.
+- [x] **3. Visual Shell Switcher**
+  - [x] Rich "Cards" representing shell modes (DMS, Noctalia, SFWBar).
+  - [x] One-click shell swapping without restarting compositor.
+- [ ] **4. LabWC & Input Integration**
+  - [ ] Display layout manager wrapping `wlr-randr`.
+  - [x] Input toggles (Natural Scrolling, Pointer Speed).
+- [ ] **5. System Health & Diagnostics Dashboard**
+  - [ ] Native `ldd` and dependency checks displayed in the UI.
+  - [ ] Real-time status indicators (Pass/Warn/Fail) powered by `ocws-validate`.

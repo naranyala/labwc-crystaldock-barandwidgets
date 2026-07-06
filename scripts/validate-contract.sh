@@ -42,9 +42,18 @@ echo ""
 echo "--- Emit Script vs Contract ---"
 declare -A contract_vars
 while IFS= read -r line; do
-    if [[ "$line" =~ emit_name[[:space:]]*=[[:space:]]*(.+)$ ]]; then
+    if [[ "$line" =~ ^\[(.*)\]$ ]]; then
+        section="${BASH_REMATCH[1]}"
+        if [[ "$section" == internal* ]]; then
+            is_internal=1
+        else
+            is_internal=0
+        fi
+    elif [[ "$line" =~ emit_name[[:space:]]*=[[:space:]]*(.+)$ ]]; then
         var="${BASH_REMATCH[1]}"
-        contract_vars["$var"]=1
+        if [[ "${is_internal:-0}" -eq 0 ]]; then
+            contract_vars["$var"]=1
+        fi
     fi
 done < "$CONTRACT"
 

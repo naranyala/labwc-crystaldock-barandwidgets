@@ -4,7 +4,7 @@
 
 Private {
   # Dock configuration — pinned apps (edit this list)
-  Set DockApps = "chromium-browser,nautilus,kate,foot,fuzzel"
+  Set DockApps = "chromium-browser,nautilus,kate,foot,rofi"
 
   export button "dock" {
     style = "dock_button"

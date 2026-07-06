@@ -65,6 +65,7 @@ ensure_config() {
 # Format: command [args...]
 # Use "daemon:" prefix for programs that should only run once (skip if already running)
 
+daemon:dms run
 CONF
         info "Created config: $CFG"
     fi

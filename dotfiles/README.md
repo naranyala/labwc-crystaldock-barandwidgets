@@ -23,8 +23,8 @@ dotfiles/
 │   ├── *.widget            # 30+ widget files
 │   ├── *.source            # Data source files
 │   └── widget-sets/        # Widget preset collections
-├── fuzzel/                 # Fuzzel launcher configuration
-│   └── fuzzel.ini
+├── rofi/                   # Rofi application launcher
+│   └── config.rasi
 ├── foot/                   # Foot terminal configuration
 │   └── foot.ini
 ├── gtk-3.0/                # GTK3 settings
@@ -67,7 +67,7 @@ The labwc config is in `dotfiles/labwc/`. It uses XML format (Openbox-compatible
 | Key | Action |
 |-----|--------|
 | `Super+Return` | Terminal (foot) |
-| `Super+D` | App launcher (fuzzel) |
+| `Super+D` | App launcher (rofi) |
 | `Super+Q` | Close window |
 | `Super+M` | Exit labwc |
 | `Super+R` | Reload config |

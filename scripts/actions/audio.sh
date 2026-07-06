@@ -18,6 +18,23 @@ NC='\033[0m'
 pass() { echo -e "${GREEN}✓${NC} $1"; }
 fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
+# --- C Native Rewrite (Phase 7b) ---
+if command -v ocws-volume >/dev/null 2>&1; then
+    # Map legacy arguments to C binary
+    case "$MODE" in
+        up|raise|volume-up) exec ocws-volume --step "${STEP%\%}" up ;;
+        down|lower|volume-down) exec ocws-volume --step "${STEP%\%}" down ;;
+        up-0.5|vol-up-0.5) exec ocws-volume --step 0.5 up ;;
+        down-0.5|vol-down-0.5) exec ocws-volume --step 0.5 down ;;
+        mute|toggle-mute) exec ocws-volume mute ;;
+        mute-input|mic) exec ocws-volume --device @DEFAULT_SOURCE@ mute ;;
+        sink-list|list-sinks) exec ocws-volume list ;;
+        set-sink) exec ocws-volume sink "${STEP:-}" ;;
+        status) exec ocws-volume get ;;
+    esac
+fi
+
+# --- Bash Fallback (Legacy) ---
 get_volume() {
   wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null | grep -oP '[\d.]+(?= \[)' || echo "0"
 }
@@ -89,7 +106,6 @@ case "$MODE" in
     ;;
 
   set-sink)
-    # STEP holds $2, which is the sink ID when called as: audio.sh set-sink <id>
     local_sink_id="${STEP:-}"
     if [ -z "$local_sink_id" ] || [ "$local_sink_id" = "5%" ]; then
       fail "Usage: $0 set-sink <sink-id>"
@@ -106,7 +122,7 @@ case "$MODE" in
 
   help|--help|-h|*)
     echo ""
-    echo "Audio Control"
+    echo "Audio Control (C Proxy)"
     echo ""
     echo "Usage: $0 <command> [step]"
     echo ""

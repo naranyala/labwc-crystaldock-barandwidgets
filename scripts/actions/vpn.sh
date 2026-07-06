@@ -82,7 +82,7 @@ case "$MODE" in
         echo "No VPN connections configured"
         exit 1
       fi
-      name=$(echo "$available" | fuzzel -d -p "VPN > " -w 40 -l 10 2>/dev/null || echo "$available" | head -1)
+      name=$(echo "$available" | rofi -dmenu -p "VPN > " -w 40 -l 10 2>/dev/null || echo "$available" | head -1)
     fi
     [ -z "$name" ] && exit 0
     nmcli connection up "$name" 2>/dev/null && notify "VPN connected: $name"

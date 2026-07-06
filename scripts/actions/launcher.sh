@@ -20,16 +20,10 @@ fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
 
 # --- App Launcher ---
 launch_apps() {
-  if command -v fuzzel >/dev/null 2>&1; then
-    fuzzel --config "$HOME/.config/fuzzel/fuzzel.ini"
-  elif command -v rofi >/dev/null 2>&1; then
+  if command -v rofi >/dev/null 2>&1; then
     rofi -show drun -theme-str 'window {width: 600px;}'
-  elif command -v wofi >/dev/null 2>&1; then
-    wofi --show drun
-  elif command -v bemenu >/dev/null 2>&1; then
-    bemenu-run
   else
-    fail "No launcher found. Install fuzzel, rofi, wofi, or bemenu"
+    fail "No launcher found. Install rofi-wayland"
   fi
 }
 
@@ -37,12 +31,8 @@ launch_apps() {
 run_command() {
   local cmd="${*:-}"
   if [ -z "$cmd" ]; then
-    if command -v fuzzel >/dev/null 2>&1; then
-      cmd=$(fuzzel --config "$HOME/.config/fuzzel/fuzzel.ini" -p "Run:" --placeholder "Type command...")
-    elif command -v rofi >/dev/null 2>&1; then
+    if command -v rofi >/dev/null 2>&1; then
       cmd=$(rofi -show run -theme-str 'window {width: 600px;}')
-    elif command -v wofi >/dev/null 2>&1; then
-      cmd=$(wofi --show run)
     fi
   fi
   
@@ -55,9 +45,7 @@ run_command() {
 # --- Recent Files ---
 show_recent() {
   local files=$(find ~ -maxdepth 3 -type f \( -name "*.txt" -o -name "*.md" -o -name "*.pdf" \) -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -20 | cut -d' ' -f2-)
-  if command -v fuzzel >/dev/null 2>&1; then
-    selected=$(echo "$files" | fuzzel --dmenu --theme="$HOME/.config/fuzzel/fuzzel.ini" -p "Recent Files" --placeholder "Search files..." --match-mode="fuzzy" --width 500)
-  elif command -v rofi >/dev/null 2>&1; then
+  if command -v rofi >/dev/null 2>&1; then
     selected=$(echo "$files" | rofi -dmenu -p "Recent Files" -theme-str 'window {width: 500px;}')
   fi
   if [ -n "$selected" ]; then

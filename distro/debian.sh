@@ -6,7 +6,7 @@ echo "Installing OCWS dependencies for Debian/Ubuntu..."
 sudo apt update
 
 PKGS=(
-    labwc fuzzel foot rofi mako-notifier qt6ct
+    labwc rofi-wayland foot rofi mako-notifier qt6ct
     swaybg swayidle swaylock gammastep dunst
     playerctl wl-clipboard grim slurp flameshot
     jq crudini libxml2-utils brightnessctl wlr-randr nautilus gnome-keyring xdotool inotify-tools imagemagick wireplumber

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Uses fuzzel to select shell mode
+# Uses rofi to select shell mode
 
 declare -A MODES=(
     ["1. Dank Material Shell (Default)"]="dms"
@@ -8,14 +8,14 @@ declare -A MODES=(
     ["4. SFWBar Dual Panel"]="both"
 )
 
-# Generate list for fuzzel
+# Generate list for rofi
 OPTIONS=""
 for key in "${!MODES[@]}"; do
     OPTIONS+="$key\n"
 done
 
-# Run fuzzel
-SELECTION=$(echo -e "$OPTIONS" | sort | fuzzel -d -p "Select Shell Mode: " -l 3)
+# Run rofi
+SELECTION=$(echo -e "$OPTIONS" | sort | rofi -dmenu -p "Select Shell Mode: " -theme-str 'window {width: 400px;}')
 
 if [ -n "$SELECTION" ]; then
     MODE_ID="${MODES[$SELECTION]}"

@@ -69,8 +69,8 @@ fi
 
 # 1. Dependency Check
 info "Checking for required dependencies..."
-if ! command -v labwc >/dev/null 2>&1 || ! command -v sfwbar >/dev/null 2>&1 || ! command -v fuzzel >/dev/null 2>&1; then
-    echo -e "\n${YELLOW}⚠${NC} Core engines (labwc, sfwbar, fuzzel) are missing!"
+if ! command -v labwc >/dev/null 2>&1 || ! command -v sfwbar >/dev/null 2>&1 || ! command -v rofi >/dev/null 2>&1; then
+    echo -e "\n${YELLOW}⚠${NC} Core engines (labwc, sfwbar, rofi) are missing!"
     echo -e "  ${RED}Options:${NC}"
     echo -e "    1) Install via package manager (${SCRIPT_DIR}/install-distribution.sh)"
     echo -e "    2) Build from source (${SCRIPT_DIR}/build-ocws-core.sh all)"
@@ -89,10 +89,11 @@ fi
 echo -e "\n${YELLOW}⚠ WARNING: This will deploy configurations to ~/.config/ and ~/.local/bin/${NC}"
 if [[ "$MODE" == "labwc-dms" ]]; then
     echo -e "  Mode: ${CYAN}labwc + dms (Dank Material Shell)${NC}"
-    echo -e "  Affected directories: labwc, ocws, fuzzel, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar"
+    echo -e "  Affected directories: labwc, ocws, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar"
+    echo -e "  Files to be overwritten: config files in these directories."
 else
     echo -e "  Mode: ${CYAN}full${NC}"
-    echo -e "  Affected directories: labwc, ocws, fuzzel, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar, crystal-dock, noctalia"
+    echo -e "  Affected directories: labwc, ocws, foot, gtk-3.0, gtk-4.0, rofi, mako, qt6ct, zebar, crystal-dock, noctalia"
 fi
 echo -n "  Are you sure you want to proceed? [y/N]: "
 read -r confirm
@@ -104,8 +105,8 @@ fi
 # 2. Setup Directories
 info "Setting up configuration directories..."
 mkdir -p ~/.config/labwc
+mkdir -p ~/.config/rofi
 mkdir -p ~/.config/ocws/plugins
-mkdir -p ~/.config/fuzzel
 mkdir -p ~/.config/gtk-3.0 ~/.config/gtk-4.0
 mkdir -p ~/.local/bin/actions
 pass "Directories created."
@@ -128,11 +129,11 @@ fi
 echo "$MODE" > ~/.config/ocws/mode
 pass "OCWS layout, plugins, and mode ($MODE) synced."
 
-# 5. Deploy Fuzzel Launcher
-if [ -d "$SCRIPT_DIR/dotfiles/fuzzel" ]; then
-    info "Deploying Application Launcher (fuzzel)..."
-    cp -r "$SCRIPT_DIR/dotfiles/fuzzel/"* ~/.config/fuzzel/ 2>/dev/null || fail "Failed to deploy fuzzel configuration"
-    pass "Fuzzel synced."
+# 5. Deploy Rofi Launcher (moved up)
+if [ -d "$SCRIPT_DIR/dotfiles/rofi" ]; then
+    info "Deploying Application Launcher (rofi)..."
+    cp -r "$SCRIPT_DIR/dotfiles/rofi/"* ~/.config/rofi/ 2>/dev/null || fail "Failed to deploy rofi configuration"
+    pass "Rofi synced."
 fi
 
 # Deploy Foot Terminal
@@ -154,12 +155,12 @@ if [ -d "$SCRIPT_DIR/dotfiles/gtk-3.0" ] || [ -d "$SCRIPT_DIR/dotfiles/gtk-4.0" 
     pass "GTK settings synced."
 fi
 
-# Deploy Rofi
-if [ -d "$SCRIPT_DIR/dotfiles/rofi" ]; then
-    info "Deploying Rofi configuration..."
-    mkdir -p ~/.config/rofi
-    cp -r "$SCRIPT_DIR/dotfiles/rofi/"* ~/.config/rofi/ 2>/dev/null || true
-    pass "Rofi synced."
+# Deploy extra plugins
+if [ -d "$SCRIPT_DIR/dotfiles/zebar" ]; then
+    info "Deploying Zebar configuration..."
+    mkdir -p ~/.config/zebar
+    cp -r "$SCRIPT_DIR/dotfiles/zebar/"* ~/.config/zebar/ 2>/dev/null || true
+    pass "Zebar synced."
 fi
 
 # Deploy Mako
@@ -404,9 +405,9 @@ validate_file "$HOME/.config/labwc/menu.xml" || ((ERRORS++))
 # Verify OCWS
 validate_file "$HOME/.config/ocws/ocws.config" || ((ERRORS++))
 
-# Verify Fuzzel
-if [ -d "$SCRIPT_DIR/dotfiles/fuzzel" ]; then
-    validate_file "$HOME/.config/fuzzel/fuzzel.ini" || ((ERRORS++))
+# Verify Rofi
+if [ -d "$SCRIPT_DIR/dotfiles/rofi" ]; then
+    validate_file "$HOME/.config/rofi/config.rasi" || ((ERRORS++))
 fi
 
 # Verify Scripts
@@ -428,9 +429,9 @@ if [ -f "$HOME/.config/ocws/ocws.config" ]; then
     validate_content "$HOME/.config/ocws/ocws.config" ocwsconfig
 fi
 
-if [ -f "$HOME/.config/fuzzel/fuzzel.ini" ]; then
-    validate_file_format "$HOME/.config/fuzzel/fuzzel.ini" ini
-    validate_content "$HOME/.config/fuzzel/fuzzel.ini" fuzzelini
+if [ -f "$HOME/.config/rofi/config.rasi" ]; then
+    validate_file_format "$HOME/.config/rofi/config.rasi" rasi
+    pass "Rofi format validated"
 fi
 
 # Validate Labwc content
@@ -450,7 +451,7 @@ fi
 info "OCWS Deployment Complete! 🚀"
 echo -e "\n${CYAN}=== Quick Install Complete ===${NC}"
 echo -e "  Installed Mode: ${GREEN}$MODE${NC}"
-echo -e "${CYAN}  Note:${NC} You must manually install labwc, sfwbar, and fuzzel first."
+echo -e "${CYAN}  Note:${NC} You must manually install labwc, sfwbar, and rofi first."
 echo -e "  Use ./install-distribution.sh for automatic distro detection and installation."
 echo -e "\n${CYAN}  Next Steps:${NC}"
 echo -e "  • Install dependencies using: ./install-distribution.sh (Recommended)"

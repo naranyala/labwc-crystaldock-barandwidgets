@@ -74,7 +74,7 @@ clear_caches() {
   # Thumbnails
   rm -rf "$HOME/.cache/thumbnails"/* 2>/dev/null || true
   # Fuzzel cache
-  rm -f "$HOME/.cache/fuzzel" 2>/dev/null || true
+  rm -f "$HOME/.cache/rofi" 2>/dev/null || true
   notify "Caches cleared!" "edit-clear"
 }
 
@@ -90,10 +90,10 @@ restart_network() {
   fi
 }
 
-# --- Interactive Menu (Fuzzel) ---
+# --- Interactive Menu (Rofi) ---
 interactive_menu() {
-  if ! command -v fuzzel &>/dev/null; then
-    echo "Fuzzel is required for interactive menu."
+  if ! command -v rofi &>/dev/null; then
+    echo "Rofi is required for interactive menu."
     exit 1
   fi
 
@@ -103,7 +103,7 @@ interactive_menu() {
 4. 🗑️ Clear Thumbnail Cache
 5. 🌐 Restart Network"
 
-  chosen=$(echo "$options" | fuzzel -d -p "Maintenance: " -l 5 -w 40)
+  chosen=$(echo "$options" | rofi -dmenu -p "Maintenance: " -l 5 -w 40)
 
   case "$chosen" in
     1.*) reload_ui ;;
@@ -129,7 +129,7 @@ case "$MODE" in
     echo "Usage: $0 [command]"
     echo ""
     echo "Commands:"
-    echo "  menu          Show interactive fuzzel menu (default)"
+    echo "  menu          Show interactive rofi menu (default)"
     echo "  reload-ui     Reload labwc and panels"
     echo "  audio         Restart Pipewire audio services"
     echo "  clipboard     Clear cliphist history"

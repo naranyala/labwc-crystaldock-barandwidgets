@@ -1,7 +1,7 @@
 #!/bin/bash
-# Simple calculator using fuzzel and bc
+# Simple calculator using rofi and bc
 
-res=$(fuzzel -d -p "Calc: " -l 0 </dev/null)
+res=$(rofi -dmenu -p "Calc: " -l 0 </dev/null)
 
 if [ -n "$res" ]; then
     ans=$(echo "$res" | bc -l 2>&1)

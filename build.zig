@@ -38,12 +38,15 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&run_tests.step);
     }
 
-    // Single-file C utilities (no external deps)
     const c_utils = [_][]const u8{
         "ocws-shot",
         "ocws-clip",
         "ocws-lock",
         "ocws-sysmon",
+        "ocws-network-bandwidth",
+        "ocws-player",
+        "ocws-state",
+        "ocws-validate",
         "ocws-brightness",
         "ocws-volume",
         "ocws-recorder",
@@ -256,6 +259,14 @@ pub fn build(b: *std.Build) void {
 
         settings.root_module.addCSourceFile(.{
             .file = b.path("src/ocws-settings.c"),
+            .flags = c_flags,
+        });
+        settings.root_module.addCSourceFile(.{
+            .file = b.path("src/settings/settings-ui.c"),
+            .flags = c_flags,
+        });
+        settings.root_module.addCSourceFile(.{
+            .file = b.path("src/settings/settings-tabs.c"),
             .flags = c_flags,
         });
         settings.root_module.linkSystemLibrary("gtk+-3.0", .{});
