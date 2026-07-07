@@ -56,6 +56,29 @@ build_engine() {
     pass "$NAME successfully installed to $PREFIX!"
 }
 
+build_make_engine() {
+    local NAME=$1
+    local REPO_URL=$2
+
+    info "Building $NAME from $REPO_URL"
+
+    # Clean previous build
+    rm -rf "$NAME"
+    
+    # Fetch absolute latest
+    git clone --depth=1 "$REPO_URL" "$NAME"
+    cd "$NAME"
+
+    info "Compiling $NAME..."
+    make -j$(nproc) || true # Some projects don't support parallel builds perfectly
+
+    info "Installing $NAME..."
+    pkexec sh -c "cd \"$PWD\" && make install"
+
+    cd ..
+    pass "$NAME successfully installed!"
+}
+
 # ============================================================
 # Core Engines
 # ============================================================
@@ -70,13 +93,23 @@ case "${1:-all}" in
     "fuzzel")
         build_engine "fuzzel" "https://codeberg.org/dnkl/fuzzel.git"
         ;;
+    "dms")
+        build_make_engine "dms" "https://github.com/DankShrine/dms.git"
+        ;;
+    "crystaldock")
+        build_make_engine "crystal-dock" "https://github.com/igrekster/crystal-dock.git"
+        ;;
+    "community")
+        build_make_engine "dms" "https://github.com/DankShrine/dms.git"
+        build_make_engine "crystal-dock" "https://github.com/igrekster/crystal-dock.git"
+        ;;
     "all")
         build_engine "labwc" "https://github.com/labwc/labwc.git"
         build_engine "sfwbar" "https://github.com/LBCrion/sfwbar.git"
         build_engine "fuzzel" "https://codeberg.org/dnkl/fuzzel.git"
         ;;
     *)
-        fail "Unknown target: $1. Available: labwc, sfwbar, fuzzel, all"
+        fail "Unknown target: $1. Available: labwc, sfwbar, fuzzel, dms, crystaldock, community, all"
         ;;
 esac
 
