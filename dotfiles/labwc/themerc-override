@@ -2,43 +2,55 @@
 # From: Catppuccin Mocha
 
 # Active window title
-activetextfont=sans 10
-activebg=#313244
-activetext=#cdd6f4
+window.active.label.text.color: #cdd6f4
+window.active.title.bg.color: #313244
+window.active.border.color: #45475a
 
 # Inactive window title
-inactivetextfont=sans 10
-inactivebg=#181825
-inactivetext=#6c7086
+window.inactive.label.text.color: #6c7086
+window.inactive.title.bg.color: #181825
+window.inactive.border.color: #45475a
 
 # Window borders
-border.width=1
-border.color=#45475a
+border.width: 1
 
 # Titlebar
-titlebar.height=28
+titlebar.height: 28
+
+# Menu
+menu.items.bg.color: #1e1e2e
+menu.items.text.color: #cdd6f4
+menu.items.active.bg.color: #313244
+menu.items.active.text.color: #cdd6f4
+menu.title.bg.color: #89b4fa
+menu.title.text.color: #cdd6f4
+menu.border.color: #45475a
 
 # OSD / Window Switcher (Alt+Tab)
-osd.bg.color=#1e1e2e
-osd.border.color=#45475a
-osd.border.width=2
-osd.label.text.color=#cdd6f4
+osd.bg.color: #1e1e2e
+osd.border.color: #45475a
+osd.border.width: 2
+osd.label.text.color: #cdd6f4
 
 # Window switcher - classic style
-osd.window-switcher.style-classic.item.active.bg.color=#1e1e2e
-osd.window-switcher.style-classic.item.active.text.color=#cdd6f4
-osd.window-switcher.style-classic.item.active.border.width=2
-osd.window-switcher.style-classic.item.active.border.color=#89b4fa
-osd.window-switcher.style-classic.width=600
-osd.window-switcher.style-classic.padding=8
-osd.window-switcher.style-classic.item.padding.x=12
-osd.window-switcher.style-classic.item.padding.y=4
-osd.window-switcher.style-classic.item.icon.size=24
+osd.window-switcher.style-classic.width: 600
+osd.window-switcher.style-classic.padding: 8
+osd.window-switcher.style-classic.item.padding.x: 12
+osd.window-switcher.style-classic.item.padding.y: 4
+osd.window-switcher.style-classic.item.icon.size: 24
+osd.window-switcher.style-classic.item.active.bg.color: #1e1e2e
+osd.window-switcher.style-classic.item.active.text.color: #cdd6f4
+osd.window-switcher.style-classic.item.active.border.width: 2
+osd.window-switcher.style-classic.item.active.border.color: #89b4fa
 
 # Workspace switcher (Super+Number)
-osd.workspace-switcher.boxes.width=24
-osd.workspace-switcher.boxes.height=24
-osd.workspace-switcher.boxes.border.width=2
-osd.workspace-switcher.label.text.color=#cdd6f4
-osd.workspace-switcher.boxes.bg.color=#1e1e2e
-osd.workspace-switcher.boxes.border.color=#45475a
+osd.workspace-switcher.boxes.width: 24
+osd.workspace-switcher.boxes.height: 24
+osd.workspace-switcher.boxes.border.width: 2
+osd.workspace-switcher.boxes.bg.color: #1e1e2e
+osd.workspace-switcher.boxes.border.color: #45475a
+osd.workspace-switcher.label.text.color: #cdd6f4
+
+# Window button colors
+window.active.button.unpressed.image.color: #cdd6f4
+window.inactive.button.unpressed.image.color: #6c7086

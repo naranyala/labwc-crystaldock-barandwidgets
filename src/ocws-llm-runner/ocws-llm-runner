@@ -1,0 +1,36 @@
+#!/bin/bash
+# ocws-llm-runner launcher script
+# Local-first LLM chat and OCR assistant
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check Python
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "error: python3 not found"
+    exit 1
+fi
+
+# Check dependencies
+check_dep() {
+    if ! python3 -c "import $1" 2>/dev/null; then
+        echo "warning: $1 not installed"
+        echo "  Install with: pip install $2"
+        return 1
+    fi
+    return 0
+}
+
+# Check required dependencies
+MISSING=0
+check_dep gi "PyGObject" || MISSING=1
+check_dep flask "flask" || MISSING=1
+
+if [ $MISSING -eq 1 ]; then
+    echo ""
+    echo "Install missing dependencies:"
+    echo "  pip install -r $SCRIPT_DIR/requirements.txt"
+    echo ""
+fi
+
+# Run the application
+exec python3 "$SCRIPT_DIR/main.py" "$@"

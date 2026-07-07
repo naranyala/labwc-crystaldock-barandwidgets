@@ -1,0 +1,125 @@
+site_name: OCWS (Wayland Custom Shell)
+site_description: Documentation for the OCWS desktop ecosystem
+site_url: https://yourusername.github.io/ocws/
+repo_url: https://github.com/yourusername/ocws
+repo_name: yourusername/ocws
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration & Architecture:
+    - Configuration: configuration.md
+    - Shell Modes Architecture: architecture-modes.md
+  - Events API: events.md
+  - Distro Packages: distro-packages.md
+  - Features & Tools:
+    - GUI Managers: gui-managers.md
+    - Local AI Assistant: ai-runner.md
+  - Lessons Learned:
+    - Overview: lessons/README.md
+    - Shell Correctness:
+      - Function Syntax: lessons/shell-function-syntax.md
+      - Case Wildcard: lessons/case-wildcard-swallows-all.md
+      - Multiline Command: lessons/multiline-command-substitution.md
+      - Redundant Actions: lessons/redundant-action-calls.md
+      - Missing set -e: lessons/shell-missing-set-e.md
+      - Source CD Changes: lessons/source-cd-changes-cwd.md
+    - Positional Arguments:
+      - Args Already Consumed: lessons/positional-args-already-consumed.md
+      - Function Param Indexing: lessons/function-param-indexing.md
+      - Variable Before Use: lessons/variable-declared-before-use.md
+    - Paths & Portability:
+      - Relative Paths: lessons/relative-paths-in-scripts.md
+      - Hardcoded Paths: lessons/hardcoded-absolute-paths.md
+      - Hardcoded Paths Again: lessons/hardcoded-absolute-paths-again.md
+      - Fallback Path: lessons/fallback-to-hardcoded-path.md
+      - Portable Paths: lessons/portable-script-paths.md
+    - Process & File Safety:
+      - Kill Self on Startup: lessons/kill-self-on-startup.md
+      - Non-Atomic Write: lessons/non-atomic-file-write.md
+      - Atomic Writes: lessons/atomic-file-writes.md
+      - sed -i on Source: lessons/sed-i-on-source-files.md
+      - Same-File Redirect: lessons/same-file-redirect-truncation.md
+    - Security:
+      - Eval Unsanitized: lessons/eval-unsanitized-input.md
+      - IPC Injection: lessons/ipc-command-injection.md
+    - C Memory Safety:
+      - sscanf Overflow: lessons/c-sscanf-buffer-overflow.md
+      - Unchecked realloc: lessons/c-unchecked-realloc.md
+    - IPC & Events:
+      - Variable Mapping: lessons/ipc-variable-mapping.md
+      - Event-Driven IPC: lessons/event-driven-ipc.md
+    - sfwbar Widget DSL:
+      - Config Syntax: lessons/sfwbar-config-syntax.md
+      - CSS Include in CSS: lessons/sfwbar-css-include-inside-css.md
+      - CSS Section vs Include: lessons/sfwbar-css-section-vs-include.md
+      - CSS Selectors: lessons/sfwbar-css-selectors.md
+      - Icon Theme Chain: lessons/sfwbar-icon-theme-chain.md
+      - Nerd Font Tabs: lessons/sfwbar-nerd-font-tabs.md
+      - OCWS CSS not GTK: lessons/sfwbar-ocws-css-not-gtk.md
+      - Private Scope: lessons/sfwbar-private-scope.md
+      - Rendering & Icons: lessons/sfwbar-rendering-and-icons.md
+      - Triggers: lessons/sfwbar-triggers.md
+      - Variable Naming: lessons/sfwbar-variable-naming.md
+      - Widget Architecture: lessons/sfwbar-widget-architecture.md
+      - CSS Selector Mismatch: lessons/widget-css-selector-mismatch.md
+      - Division by Zero: lessons/widget-division-by-zero.md
+      - ExecTerm Invalid: lessons/widget-execterm-not-valid.md
+      - Interval vs Step: lessons/widget-interval-vs-scanner-step.md
+      - Unclosed If Parens: lessons/widget-unclosed-if-parens.md
+    - Theme Engine:
+      - Templates: lessons/theme-engine-templates.md
+      - Engine & Installer: lessons/theme-engine-and-installer.md
+    - Other:
+      - Autostart Ordering: lessons/autostart-ordering.md
+      - Build Temp Dirs: lessons/build-absolute-temp-dirs.md
+      - C Data Sources: lessons/c-utilities-data-sources.md
+      - Easing Functions: lessons/easing-functions-ui.md
+      - Foot Config: lessons/foot-terminal-configuration.md
+      - GTK Layer Shell: lessons/gtk-layer-shell.md
+      - C Abstractions: lessons/ocws-c-native-abstractions.md
+      - Double Side Effect: lessons/double-side-effect.md
+      - JSON Concatenation: lessons/json-string-concatenation.md
+      - Sysmon Output: lessons/sysmon-output-ordering.md
+  - Planning & Analysis:
+    - Sfwbar Unification: PLAN-sfwbar-unification.md
+    - Settings Panel Design: ocws-settings-panel-design.md
+    - Consolidation Analysis: consolidation-analysis.md
+    - Dependency Removal Impact: dependency-removal-impact.md
+    - Shell Removal Impact: shell-removal-impact.md

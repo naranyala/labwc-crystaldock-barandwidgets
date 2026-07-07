@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include "../utils.h"
+#include "../../core/utils.h"
 
 // ============================================================
 // Configuration
@@ -55,6 +55,8 @@ void execute_command(GtkWidget *widget, gpointer data) {
     const char *cmd = (const char *)data;
     if (cmd && cmd[0]) run_cmd_async(cmd);
 }
+
+static void free_ptr(gpointer data, GClosure *closure);
 
 // ============================================================
 // Card Widgets
@@ -236,7 +238,7 @@ GtkWidget* create_live_toggle_row(const char *label, const char *description, gb
     if (cmd_on) g_strlcpy(d->cmd_on, cmd_on, sizeof(d->cmd_on));
     if (cmd_off) g_strlcpy(d->cmd_off, cmd_off, sizeof(d->cmd_off));
 
-    g_signal_connect_data(toggle, "notify::active", G_CALLBACK(on_toggle_row_changed), d, (GClosureNotify)g_free, 0);
+    g_signal_connect_data(toggle, "notify::active", G_CALLBACK(on_toggle_row_changed), d, (GClosureNotify)free_ptr, 0);
 
     return row;
 }
@@ -328,7 +330,7 @@ GtkWidget* create_live_slider_row(const char *label, int value, int min, int max
     d->unit = unit;
     d->step = step;
 
-    g_signal_connect_data(scale, "value-changed", G_CALLBACK(on_slider_changed), d, (GClosureNotify)g_free, 0);
+    g_signal_connect_data(scale, "value-changed", G_CALLBACK(on_slider_changed), d, (GClosureNotify)free_ptr, 0);
 
     gtk_box_pack_start(GTK_BOX(row), lbl, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(row), scale, TRUE, TRUE, 0);
@@ -452,7 +454,7 @@ GtkWidget* create_shell_card(const char *title, const char *desc, const char *mo
 
     gtk_container_add(GTK_CONTAINER(btn), vbox);
     char *cmd = g_strdup_printf("toggle-shell %s", mode);
-    g_signal_connect(btn, "clicked", G_CALLBACK(execute_command), cmd);
+    g_signal_connect_data(btn, "clicked", G_CALLBACK(execute_command), cmd, (GClosureNotify)free_ptr, 0);
     return btn;
 }
 
@@ -536,23 +538,57 @@ void load_system_info(GtkWidget *textview) {
 // CSS
 // ============================================================
 
+static void free_ptr(gpointer data, GClosure *closure) {
+    (void)closure;
+    g_free(data);
+}
+
 void apply_css(GtkApplication *app) {
     (void)app;
     GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider,
-        ".settings-card { background-color: rgba(30, 30, 46, 0.85); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 16px; }"
+    char css[8192] = {0};
+
+    /* Fallback tokens — used when tokens.css is absent, overridden if file exists */
+    snprintf(css, sizeof(css),
+        "@define-color ocws_bg #1e1e2e;"
+        "@define-color ocws_fg #cdd6f4;"
+        "@define-color ocws_mantle #181825;"
+        "@define-color ocws_surface0 #313244;"
+        "@define-color ocws_surface1 #45475a;"
+        "@define-color ocws_accent #89b4fa;"
+        "@define-color ocws_subtext0 #a6adc8;"
+        "@define-color ocws_sapphire #74c7ec;"
+    );
+    int pos = (int)strlen(css);
+
+    /* Load tokens.css if available (overrides fallbacks) */
+    char tokpath[1024];
+    snprintf(tokpath, sizeof(tokpath), "%s/tokens.css", OCWS_HOME);
+    FILE *f = fopen(tokpath, "r");
+    if (f) {
+        size_t n = fread(css + pos, 1, sizeof(css) - pos - 2048, f);
+        fclose(f);
+        pos += (int)n;
+    }
+
+    /* Application CSS — references @ocws_* variables defined above */
+    snprintf(css + pos, sizeof(css) - pos,
+        ".settings-card { background-color: alpha(@ocws_bg, 0.85); border: 1px solid alpha(@ocws_fg, 0.08); border-radius: 16px; padding: 16px; }"
         ".collapsible-header { cursor: pointer; }"
-        ".collapsible-header:hover { background-color: rgba(137, 180, 250, 0.1); border-radius: 8px; }"
-        ".shell-card { padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background-color: rgba(49, 50, 68, 0.75); transition: all 200ms ease; }"
-        ".shell-card:hover { background-color: rgba(137, 180, 250, 0.15); border-color: rgba(137, 180, 250, 0.3); }"
+        ".collapsible-header:hover { background-color: alpha(@ocws_accent, 0.1); border-radius: 8px; }"
+        ".shell-card { padding: 20px; border-radius: 12px; border: 1px solid alpha(@ocws_fg, 0.08); background-color: alpha(@ocws_surface0, 0.75); transition: all 200ms ease; }"
+        ".shell-card:hover { background-color: alpha(@ocws_accent, 0.15); border-color: alpha(@ocws_accent, 0.3); }"
         ".dim-label { opacity: 0.7; font-size: 0.9em; }"
-        "textview.terminal { font-family: 'Noto Sans Mono', monospace; font-size: 12px; background-color: #1e1e2e; color: #cdd6f4; padding: 12px; }"
+        "textview.terminal { font-family: 'Noto Sans Mono', monospace; font-size: 12px; background-color: @ocws_bg; color: @ocws_fg; padding: 12px; }"
         "notebook tab { padding: 8px 16px; }"
         "switch { min-width: 48px; min-height: 24px; }"
         "scale trough { min-height: 6px; border-radius: 3px; }"
         "scale slider { min-width: 18px; min-height: 18px; border-radius: 9px; }"
         "* { font-family: 'Noto Sans', sans-serif; }"
-        , -1, NULL);
+    );
+
+    gtk_css_provider_load_from_data(provider, css, -1, NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
         GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(provider);
 }

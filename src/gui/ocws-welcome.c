@@ -25,6 +25,8 @@
 #include <sys/stat.h>
 #include "utils.h"
 
+static void free_ptr(gpointer data, GClosure *closure);
+
 /* ================================================================
  * Constants
  * ================================================================ */
@@ -42,10 +44,10 @@ static GtkWidget *g_btn_prev   = NULL;
 static GtkWidget *g_btn_next   = NULL;
 static GtkWidget *g_checkbox   = NULL;
 static int        g_page       = 0;
-static const int  TOTAL_PAGES  = 6;
+static const int  TOTAL_PAGES  = 7;
 
 static const char *PAGE_NAMES[] = {
-    "intro", "shell", "theme", "options", "thanks", "finish"
+    "intro", "shell", "theme", "options", "tools", "thanks", "finish"
 };
 
 /* ================================================================
@@ -364,8 +366,8 @@ static GtkWidget *build_theme_page(void) {
             g_free(pretty);
             gtk_container_add(GTK_CONTAINER(btn), lbl);
 
-            g_signal_connect(btn, "clicked", G_CALLBACK(on_theme_select),
-                             (gpointer)extra[i]);   /* leaked—acceptable */
+            g_signal_connect_data(btn, "clicked", G_CALLBACK(on_theme_select),
+                             (gpointer)extra[i], (GClosureNotify)free_ptr, 0);
             gtk_container_add(GTK_CONTAINER(flow2), btn);
         }
     }
@@ -491,7 +493,162 @@ static GtkWidget *build_options_page(void) {
     return page;
 }
 
-/* ---- Page 5: Thanks / Credits ---- */
+/* ---- Page 5: GUI Tools ---- */
+static void on_launch_tool(GtkWidget *w, gpointer data) {
+    (void)w;
+    const char *cmd = (const char *)data;
+    char full_cmd[256];
+    snprintf(full_cmd, sizeof(full_cmd), "%s &", cmd);
+    system(full_cmd);
+}
+
+static GtkWidget *build_tools_page(void) {
+    GtkWidget *page = make_page_box();
+    GtkWidget *vbox = get_page_content(page);
+
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title),
+        "<span size='x-large' weight='bold'>GUI Tools</span>");
+    gtk_label_set_xalign(GTK_LABEL(title), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), title, FALSE, FALSE, 0);
+
+    GtkWidget *desc = gtk_label_new(
+        "OCWS includes dedicated GUI tools for managing your desktop. "
+        "Launch them anytime from the app launcher or command bar.");
+    gtk_label_set_line_wrap(GTK_LABEL(desc), TRUE);
+    gtk_label_set_xalign(GTK_LABEL(desc), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), desc, FALSE, FALSE, 4);
+
+    gtk_box_pack_start(GTK_BOX(vbox),
+        gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 4);
+
+    /* Tool card helper macro */
+    #define TOOL_ROW(parent, icon_name, tool_name, desc_text, cmd) \
+        do { \
+            GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10); \
+            gtk_widget_set_margin_bottom(row, 8); \
+            GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_LARGE_TOOLBAR); \
+            gtk_widget_set_size_request(icon, 32, -1); \
+            gtk_box_pack_start(GTK_BOX(row), icon, FALSE, FALSE, 0); \
+            GtkWidget *info = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2); \
+            GtkWidget *_lbl = gtk_label_new(NULL); \
+            gtk_label_set_markup(GTK_LABEL(_lbl), "<b>" tool_name "</b>"); \
+            gtk_label_set_xalign(GTK_LABEL(_lbl), 0.0); \
+            gtk_box_pack_start(GTK_BOX(info), _lbl, FALSE, FALSE, 0); \
+            GtkWidget *_d = gtk_label_new(desc_text); \
+            gtk_label_set_xalign(GTK_LABEL(_d), 0.0); \
+            gtk_label_set_line_wrap(GTK_LABEL(_d), TRUE); \
+            gtk_style_context_add_class(gtk_widget_get_style_context(_d), "dim-label"); \
+            gtk_box_pack_start(GTK_BOX(info), _d, FALSE, FALSE, 0); \
+            GtkWidget *_btn = gtk_button_new_with_label("Launch"); \
+            gtk_widget_set_valign(_btn, GTK_ALIGN_CENTER); \
+            g_signal_connect(_btn, "clicked", G_CALLBACK(on_launch_tool), (gpointer)cmd); \
+            gtk_box_pack_start(GTK_BOX(row), info, TRUE, TRUE, 0); \
+            gtk_box_pack_start(GTK_BOX(row), _btn, FALSE, FALSE, 0); \
+            gtk_box_pack_start(GTK_BOX(parent), row, FALSE, FALSE, 0); \
+        } while(0)
+
+    /* Core Tools */
+    GtkWidget *core_title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(core_title),
+        "<b>Core Applications</b>");
+    gtk_label_set_xalign(GTK_LABEL(core_title), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), core_title, FALSE, FALSE, 4);
+
+    TOOL_ROW(vbox,
+        "preferences-desktop",
+        "OCWS Settings",
+        "Full control center — appearance, bar, widgets, keybinds & more",
+        "ocws-settings");
+
+    TOOL_ROW(vbox,
+        "dialog-information",
+        "Welcome Screen",
+        "Setup wizard for first-time configuration",
+        "ocws-welcome");
+
+    TOOL_ROW(vbox,
+        "system-software-install",
+        "Package Manager",
+        "Resolve dependencies & build engines from source",
+        "ocws-pkgmgr");
+
+    TOOL_ROW(vbox,
+        "drive-harddisk",
+        "System Monitor",
+        "CPU, memory, disk, and network statistics",
+        "ocws-sysmon");
+
+    gtk_box_pack_start(GTK_BOX(vbox),
+        gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 4);
+
+    /* Utility Tools */
+    GtkWidget *util_title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(util_title),
+        "<b>Utilities</b>");
+    gtk_label_set_xalign(GTK_LABEL(util_title), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), util_title, FALSE, FALSE, 4);
+
+    TOOL_ROW(vbox,
+        "accessories-text-editor",
+        "Dock Manager",
+        "Manage dock pinned apps across shells",
+        "ocws-dock-mgr");
+
+    TOOL_ROW(vbox,
+        "preferences-desktop-wallpaper",
+        "Workspace Manager",
+        "Kanban-style workspace organization",
+        "ocws-workspace-mgr");
+
+    TOOL_ROW(vbox,
+        "edit-paste",
+        "Clipboard Manager",
+        "History and search clipboard entries",
+        "ocws-clip");
+
+    TOOL_ROW(vbox,
+        "color-select-color",
+        "Color Picker",
+        "Extract colors from screen",
+        "ocws-color");
+
+    TOOL_ROW(vbox,
+        "camera-photo",
+        "OCR Tool",
+        "Extract text from screen regions",
+        "ocws-ocr");
+
+    TOOL_ROW(vbox,
+        "edit-find",
+        "Search",
+        "Search across files and applications",
+        "ocws-search");
+
+    TOOL_ROW(vbox,
+        "multimedia-audio-player",
+        "Media Player",
+        "Control media playback",
+        "ocws-player");
+
+    TOOL_ROW(vbox,
+        "applets-screenshooter",
+        "Screenshot",
+        "Capture and annotate screenshots",
+        "ocws-shot");
+
+    TOOL_ROW(vbox,
+        "system-lock-screen",
+        "Lock Screen",
+        "Lock your desktop session",
+        "ocws-lock");
+
+    #undef TOOL_ROW
+
+    return page;
+}
+
+/* ---- Page 6: Thanks / Credits ---- */
 static void on_open_url(GtkWidget *w, gpointer data) {
     (void)w;
     const char *url = (const char *)data;
@@ -628,58 +785,88 @@ static GtkWidget *build_finish_page(void) {
  * CSS
  * ================================================================ */
 
+static void free_ptr(gpointer data, GClosure *closure) {
+    (void)closure;
+    g_free(data);
+}
+
 static void apply_welcome_css(void) {
     GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider,
+    char css[8192] = {0};
+
+    /* Fallback tokens — overridden if tokens.css exists */
+    snprintf(css, sizeof(css),
+        "@define-color ocws_bg #1e1e2e;"
+        "@define-color ocws_fg #cdd6f4;"
+        "@define-color ocws_mantle #181825;"
+        "@define-color ocws_surface0 #313244;"
+        "@define-color ocws_accent #89b4fa;"
+        "@define-color ocws_sapphire #74c7ec;"
+    );
+    int pos = (int)strlen(css);
+
+    /* Load tokens.css if available (overrides fallbacks) */
+    char dir[512], tokpath[576];
+    get_config_dir(dir, sizeof(dir));
+    snprintf(tokpath, sizeof(tokpath), "%s/tokens.css", dir);
+    FILE *f = fopen(tokpath, "r");
+    if (f) {
+        size_t n = fread(css + pos, 1, sizeof(css) - pos - 2048, f);
+        fclose(f);
+        pos += (int)n;
+    }
+
+    /* Application CSS */
+    snprintf(css + pos, sizeof(css) - pos,
         "window {"
-        "  background-color: #1e1e2e;"
-        "  color: #cdd6f4;"
+        "  background-color: @ocws_bg;"
+        "  color: @ocws_fg;"
         "}"
         "headerbar {"
-        "  background-color: #181825;"
-        "  color: #cdd6f4;"
-        "  border-bottom: 1px solid rgba(255,255,255,0.06);"
+        "  background-color: @ocws_mantle;"
+        "  color: @ocws_fg;"
+        "  border-bottom: 1px solid alpha(@ocws_fg,0.06);"
         "}"
         ".welcome-card {"
         "  padding: 12px;"
         "  border-radius: 12px;"
-        "  border: 1px solid rgba(255,255,255,0.08);"
-        "  background-color: rgba(49,50,68,0.75);"
-        "  color: #cdd6f4;"
+        "  border: 1px solid alpha(@ocws_fg,0.08);"
+        "  background-color: alpha(@ocws_surface0,0.75);"
+        "  color: @ocws_fg;"
         "  transition: all 200ms ease;"
         "}"
         ".welcome-card:hover {"
-        "  background-color: rgba(137,180,250,0.12);"
-        "  border-color: rgba(137,180,250,0.25);"
+        "  background-color: alpha(@ocws_accent,0.12);"
+        "  border-color: alpha(@ocws_accent,0.25);"
         "}"
         ".welcome-card.suggested-action {"
-        "  background-color: rgba(137,180,250,0.22);"
-        "  border-color: #89b4fa;"
+        "  background-color: alpha(@ocws_accent,0.22);"
+        "  border-color: @ocws_accent;"
         "}"
         "button {"
         "  border-radius: 8px;"
         "  padding: 6px 16px;"
-        "  background-color: rgba(49,50,68,0.8);"
-        "  color: #cdd6f4;"
-        "  border: 1px solid rgba(255,255,255,0.08);"
+        "  background-color: alpha(@ocws_surface0,0.8);"
+        "  color: @ocws_fg;"
+        "  border: 1px solid alpha(@ocws_fg,0.08);"
         "}"
         "button:hover {"
-        "  background-color: rgba(137,180,250,0.15);"
+        "  background-color: alpha(@ocws_accent,0.15);"
         "}"
         "button.suggested-action {"
-        "  background-color: #89b4fa;"
-        "  color: #1e1e2e;"
+        "  background-color: @ocws_accent;"
+        "  color: @ocws_bg;"
         "  font-weight: bold;"
         "}"
         "button.suggested-action:hover {"
-        "  background-color: #74c7ec;"
+        "  background-color: @ocws_sapphire;"
         "}"
         ".dim-label {"
         "  opacity: 0.6;"
         "  font-size: 0.85em;"
         "}"
         "separator {"
-        "  background-color: rgba(255,255,255,0.06);"
+        "  background-color: alpha(@ocws_fg,0.06);"
         "  min-height: 1px;"
         "}"
         "switch {"
@@ -694,9 +881,12 @@ static void apply_welcome_css(void) {
         "* {"
         "  font-family: 'Noto Sans', 'Adwaita Sans', sans-serif;"
         "}"
-        , -1, NULL);
+    );
+
+    gtk_css_provider_load_from_data(provider, css, -1, NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
         GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(provider);
 }
 
 /* ================================================================
@@ -735,6 +925,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_stack_add_named(GTK_STACK(g_stack), build_shell_page(),   "shell");
     gtk_stack_add_named(GTK_STACK(g_stack), build_theme_page(),   "theme");
     gtk_stack_add_named(GTK_STACK(g_stack), build_options_page(), "options");
+    gtk_stack_add_named(GTK_STACK(g_stack), build_tools_page(),   "tools");
     gtk_stack_add_named(GTK_STACK(g_stack), build_thanks_page(),  "thanks");
     gtk_stack_add_named(GTK_STACK(g_stack), build_finish_page(),  "finish");
 

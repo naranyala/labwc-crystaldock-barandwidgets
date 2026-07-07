@@ -214,6 +214,9 @@ render_template() {
                         elif [[ "$var_name" == ROFI_* ]]; then
                             local key="${var_name#ROFI_}"
                             var_value=$(ini_get "rofi.${key,,}" "")
+                        elif [[ "$var_name" == FUZZEL_* ]]; then
+                            local key="${var_name#FUZZEL_}"
+                            var_value=$(ini_get "fuzzel.${key,,}" "")
                         elif [[ "$var_name" == MAKO_* ]]; then
                             local key="${var_name#MAKO_}"
                             var_value=$(ini_get "mako.${key,,}" "")
@@ -290,6 +293,7 @@ declare -A OUTPUT_MAP=(
     [sfwbar.css.tmpl]="$HOME/.config/ocws/theme.css"
     [tokens.css.tmpl]="$HOME/.config/ocws/tokens.css"
     [rofi.rasi.tmpl]="$HOME/.config/rofi/config.rasi"
+    [fuzzel.ini.tmpl]="$HOME/.config/fuzzel/fuzzel.ini"
     [mako.ini.tmpl]="$HOME/.config/mako/config"
     [foot.ini.tmpl]="$HOME/.config/foot/foot.ini"
     [qt6ct.conf.tmpl]="$HOME/.config/qt6ct/qt6ct.conf"
@@ -441,6 +445,16 @@ cmd_apply() {
     if [[ -n "$rofi_css" ]]; then
         echo "$rofi_css" > "$HOME/.config/rofi/config.rasi"
         pass "rofi.rasi"
+        ((applied++))
+    fi
+
+    # Fuzzel
+    local fuzzel_ini
+    fuzzel_ini=$(render_template "$TEMPLATES_DIR/fuzzel.ini.tmpl")
+    if [[ -n "$fuzzel_ini" ]]; then
+        mkdir -p "$HOME/.config/fuzzel"
+        echo "$fuzzel_ini" > "$HOME/.config/fuzzel/fuzzel.ini"
+        pass "fuzzel.ini"
         ((applied++))
     fi
 

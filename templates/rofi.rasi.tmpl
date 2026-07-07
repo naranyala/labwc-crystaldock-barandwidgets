@@ -11,6 +11,7 @@ configuration {
     display-window: " Windows";
     drun-display-format: "{name}";
     terminal: "{{ROFI_TERMINAL}}";
+    fuzzy: true;
 }
 
 * {
@@ -20,6 +21,7 @@ configuration {
     fg-alt:     {{ROFI_FG_ALT}};
     accent:     {{ROFI_ACCENT}};
     urgent:     {{ROFI_URGENT}};
+    error:      {{ROFI_ERROR}};
     selected:   {{ROFI_SELECTED}};
 
     background-color: transparent;
@@ -88,4 +90,17 @@ element-icon {
 element-text {
     vertical-align: 0.5;
     expand:         true;
+}
+
+message {
+    background-color: @bg-alt;
+    border:           1px solid;
+    border-color:     @error;
+    border-radius:    8px;
+    padding:          12px;
+    margin-top:       8px;
+}
+
+textbox {
+    text-color: @error;
 }

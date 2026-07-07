@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OCWS Workspace Manager
+Comment=Kanban-style workspace and window manager for OCWS/labwc
+Exec=ocws-workspace-mgr
+Icon=preferences-desktop-workspaces
+Terminal=false
+Type=Application
+Categories=Utility;Desktop;GTK;
+Keywords=ocws;workspace;windows;kanban;labwc;desktop;
+StartupNotify=true

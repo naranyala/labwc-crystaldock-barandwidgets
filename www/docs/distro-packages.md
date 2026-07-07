@@ -23,19 +23,7 @@ Every binary referenced at runtime by the OCWS dotfiles — shell mode scripts, 
 | foot | ✅ community | ✅ backports+ | ✅ | ✅ |
 | mako | ✅ community | ✅ (`mako-notifier`) | ✅ | ✅ |
 
-## Mode-Specific Shells
 
-| Binary | Arch | Debian / Ubuntu | Fedora | openSUSE |
-|---|---|---|---|---|
-| crystal-dock | ⚠ AUR | ✅ universe | ❌ build | ❌ build |
-| dms (DankMaterialShell) | ❌ build | ❌ build | ❌ build | ❌ build |
-
-`dms` is **not packaged in any distro**. Always requires:
-
-```sh
-git clone https://github.com/DankShrine/dms.git
-cd dms && make && sudo make install
-```
 
 ## Clipboard & Screenshots
 
@@ -94,35 +82,28 @@ cd dms && make && sudo make install
 
 ### Must build (not packaged anywhere)
 
-| Tool | Instructions |
-|---|---|
-| **dms** | `git clone https://github.com/DankShrine/dms.git && cd dms && make && sudo make install`<br>Requires: `gcc make pkg-config gtk3-devel json-c-devel` |
+*(Currently, all core dependencies are packaged or provided natively via Zig.)*
 
 ### Package-managed on some distros, build on others
 
 | Tool | Distros needing build |
 |---|---|
 | **sfwbar** | Debian/Ubuntu stable (not in repos) |
-| **crystal-dock** | Fedora, openSUSE |
 | **fuzzel** | Debian/Ubuntu stable (not in repos) |
 | **FiraCode Nerd Font** | Fedora, openSUSE; all non-Arch distros for the Nerd variant |
 
 ### Distro build deps table
 
 ```sh
-# Arch — build deps for dms / crystal-dock
-sudo pacman -S base-devel gtk3 json-c  # dms
-paru -S crystal-dock                   # crystal-dock (AUR)
+# Arch
+sudo pacman -S base-devel gtk3 json-c
 
 # Debian/Ubuntu — build deps
-sudo apt install gcc make pkg-config libgtk-3-dev libjson-c-dev  # dms
 sudo apt install build-essential cmake libgtk-3-dev               # sfwbar from source
 
 # Fedora — build deps
-sudo dnf install gcc make pkg-config gtk3-devel json-c-devel  # dms
-sudo dnf install gcc make pkg-config gtk3-devel               # crystal-dock
+sudo dnf install gcc make pkg-config gtk3-devel json-c-devel
 
 # openSUSE — build deps
-sudo zypper install gcc make pkg-config gtk3-devel libjson-c-devel  # dms
-sudo zypper install gcc make pkg-config gtk3-devel                   # crystal-dock
+sudo zypper install gcc make pkg-config gtk3-devel libjson-c-devel
 ```

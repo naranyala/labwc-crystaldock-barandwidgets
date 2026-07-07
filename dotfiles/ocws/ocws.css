@@ -1,108 +1,206 @@
-/* OCWS Glass Panel Theme
- * Theme: Catppuccin Mocha
- * Valid GTK3 CSS only */
-
-/* ============================================================
- * OCWS Glass Surface — Core shell panels
+/* ocws.css — Glassmorphism theme for OCWS dual-panel mode
+ * Loaded by ocws.config (doublepanel mode).
+ * Uses tokens from tokens.css for colors.
  * ============================================================ */
 
+/* --- Phase 1: Global Shell Tokens (Glassmorphism & Floating) --- */
+@define-color shell_bg alpha(@ocws_bg, 0.92);
+@define-color shell_bg_translucent alpha(@ocws_bg, 0.65);
+@define-color shell_bg_hover alpha(@ocws_surface1, 0.5);
+@define-color shell_bg_active alpha(@ocws_accent, 0.2);
+@define-color shell_border alpha(@ocws_fg, 0.1);
+@define-color text_primary @ocws_fg;
+@define-color text_muted @ocws_muted;
+@define-color accent @ocws_accent;
+@define-color urgent_bg alpha(@ocws_urgent, 0.2);
+@define-color shadow rgba(0, 0, 0, 0.4);
+
+/* --- Top and Bottom Bars --- */
 window#topbar, window#bottombar {
-  background-color: alpha(#1e1e2e, 0.92);
+  background-color: @shell_bg;
   border-radius: 0px;
+  margin: 0px;
   border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  margin: 0px;
-  padding: 0px;
+  box-shadow: 0 2px 12px @shadow;
+  min-height: 32px;
 }
 
-/* Top bar layout */
-grid#layout, grid#topbar {
+grid#topbar, grid#bottombar {
   background-color: transparent;
+  border: none;
   margin: 0px;
   padding: 0px 8px;
-  border-bottom: 1px solid alpha(#45475a, 0.3);
 }
 
-/* Bottom bar */
-grid#bottombar {
-  background-color: alpha(#1e1e2e, 0.85);
-  margin: 0px;
-  padding: 0px 8px;
-  border-top: 1px solid alpha(#45475a, 0.3);
+/* --- Shared Components & Reset --- */
+* {
+  background-color: transparent;
+  color: @text_primary;
+  font-family: 'FiraCode Nerd Font', 'Noto Sans', 'DejaVu Sans', sans-serif;
 }
-
-/* ============================================================
- * Switcher (OSD popup for Alt+Tab and Super+Number)
- * ============================================================ */
 
 window#switcher {
-  background-color: alpha(#1e1e2e, 0.95);
-  color: #cdd6f4;
-  border: 1px solid alpha(#45475a, 0.4);
+  background-color: @shell_bg;
+  color: @text_primary;
+  border: 1px solid @shell_border;
   border-radius: 10px;
   padding: 40px;
   -GtkWidget-hexpand: true;
 }
 
 grid#switcher_item label {
-  color: #cdd6f4;
+  color: @text_primary;
 }
 
-/* ============================================================
- * Typography
- * ============================================================ */
-
-label, button, tooltip {
-  font-family: 'Noto Sans', 'sans-serif';
-  font-weight: 400;
-  color: #cdd6f4;
-}
-
-/* ============================================================
- * Module buttons
- * ============================================================ */
-
-button.module {
+label {
+  font-family: 'FiraCode Nerd Font', 'Noto Sans', 'DejaVu Sans', sans-serif;
+  font-size: 12px;
+  color: @text_primary;
   background-color: transparent;
+}
+
+button, button image {
+  min-height: 0px;
+  outline-style: none;
+  box-shadow: none;
+  background-image: none;
+  border-image: none;
+  background-color: transparent;
+  color: @text_primary;
+  font-family: 'FiraCode Nerd Font', 'Noto Sans', 'DejaVu Sans', sans-serif;
+}
+
+/* --- Show Desktop --- */
+button#showdesktop {
+  padding: 0px 6px;
+  margin: 0px 2px;
   border-radius: 6px;
-  border: none;
+}
+button#showdesktop:hover {
+  background-color: @shell_bg_hover;
+}
+button#showdesktop:checked {
+  background-color: @shell_bg_active;
+}
+
+/* --- Taskbar --- */
+button.taskbar_item {
+  padding: 2px 12px;
+  margin: 4px;
+  border-radius: 12px;
+  background-color: rgba(49, 50, 68, 0.75);
+  border: 1px solid @shell_border;
+  box-shadow: 0 4px 16px @shadow;
+  color: @text_muted;
+  font-size: 11px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
+}
+button.taskbar_item:hover {
+  background-color: rgba(69, 71, 90, 0.85);
+  color: @text_primary;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+button.taskbar_item.focused {
+  background-color: alpha(@ocws_accent, 0.25);
+  color: @text_primary;
+  border-bottom: 2px solid @accent;
+  box-shadow: 0 4px 16px alpha(@ocws_accent, 0.15);
+}
+button.taskbar_item.urgent {
+  background-color: @urgent_bg;
+  color: @ocws_urgent;
+  box-shadow: 0 4px 16px alpha(@ocws_urgent, 0.15);
+}
+button.taskbar_item image {
+  min-height: 28px;
+  min-width: 28px;
+  padding: 2px;
+}
+button.taskbar_item label {
+  font-size: 0px;
+  color: transparent;
+  padding: 0px;
+  padding-left: 4px;
+}
+
+/* --- Module buttons (glassmorphism pills) --- */
+button.module {
+  padding: 0px 10px;
+  border-radius: 18px;
+  background-color: rgba(49, 50, 68, 0.85);
+  border: 1px solid @shell_border;
+  box-shadow: 0 4px 16px @shadow;
+  color: @text_primary;
+  margin: 4px;
   min-width: 24px;
   min-height: 24px;
-  padding: 4px 8px;
-  margin: 2px;
-  color: #cdd6f4;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
 }
-
 button.module:hover {
-  background-color: alpha(#1e1e2e, 0.5);
+  background-color: rgba(69, 71, 90, 0.9);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
-
 button.module:active {
-  background-color: alpha(#89b4fa, 0.3);
+  background-color: @shell_bg_active;
+  box-shadow: 0 2px 8px @shadow;
 }
 
-/* ============================================================
- * Text-style widgets
- * ============================================================ */
+/* --- Module pills (smaller metric widgets) --- */
+button.module_pill {
+  padding: 0px 10px;
+  margin: 4px 2px;
+  border-radius: 18px;
+  background-color: rgba(49, 50, 68, 0.85);
+  border: 1px solid @shell_border;
+  box-shadow: 0 4px 16px @shadow;
+  color: @text_muted;
+  font-size: 11px;
+  min-width: 0px;
+  min-height: 0px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
+}
+button.module_pill:hover {
+  background-color: rgba(69, 71, 90, 0.9);
+  color: @text_primary;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+button.module_pill:active {
+  background-color: @shell_bg_active;
+  box-shadow: 0 2px 8px @shadow;
+}
 
+/* --- Text-style widgets --- */
 button.text_widget {
-  padding: 2px 8px;
-  margin: 1px 3px;
-  border-radius: 6px;
-  background-color: transparent;
-  color: alpha(#cdd6f4, 0.7);
+  padding: 2px 10px;
+  margin: 4px 2px;
+  border-radius: 12px;
+  background-color: rgba(49, 50, 68, 0.75);
+  border: 1px solid @shell_border;
+  box-shadow: 0 4px 16px @shadow;
+  color: @text_muted;
   min-width: 0px;
   min-height: 0px;
   font-size: 12px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
 }
-
 button.text_widget:hover {
-  background-color: alpha(#1e1e2e, 0.4);
-  color: #cdd6f4;
+  background-color: rgba(69, 71, 90, 0.85);
+  color: @text_primary;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+button.text_widget:active {
+  background-color: @shell_bg_active;
+  box-shadow: 0 2px 8px @shadow;
 }
 
-button.text_widget:active {
-  background-color: alpha(#89b4fa, 0.2);
+label.text_sep {
+  color: rgba(166, 173, 200, 0.3);
+  font-size: 8px;
+  padding: 0px 2px;
 }
 
 button.text_clock {
@@ -110,15 +208,16 @@ button.text_clock {
   margin: 1px 3px;
   border-radius: 6px;
   background-color: transparent;
-  color: #cdd6f4;
+  color: @text_primary;
   font-size: 13px;
   font-weight: bold;
   min-width: 0px;
   min-height: 0px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
 }
-
 button.text_clock:hover {
-  background-color: alpha(#1e1e2e, 0.4);
+  background-color: rgba(69, 71, 90, 0.4);
 }
 
 button.text_media {
@@ -126,15 +225,16 @@ button.text_media {
   margin: 1px 3px;
   border-radius: 6px;
   background-color: transparent;
-  color: alpha(#cdd6f4, 0.7);
+  color: @text_muted;
   font-size: 12px;
   min-width: 0px;
   min-height: 0px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
 }
-
 button.text_media:hover {
-  background-color: alpha(#1e1e2e, 0.4);
-  color: #cdd6f4;
+  background-color: rgba(69, 71, 90, 0.4);
+  color: @text_primary;
 }
 
 button.text_metric {
@@ -142,343 +242,103 @@ button.text_metric {
   margin: 1px 3px;
   border-radius: 6px;
   background-color: transparent;
-  color: alpha(#cdd6f4, 0.7);
+  color: @text_muted;
   font-size: 11px;
   font-family: monospace;
   min-width: 0px;
   min-height: 0px;
+  -GtkWidget-vexpand: true;
+  -GtkWidget-valign: center;
+}
+button.text_metric:hover {
+  background-color: rgba(69, 71, 90, 0.4);
+  color: @text_primary;
 }
 
-button.text_metric:hover {
-  background-color: alpha(#1e1e2e, 0.4);
-  color: #cdd6f4;
+label.status_dot {
+  font-size: 8px;
+  padding-right: 4px;
 }
 
 button.text_urgent {
-  color: #f38ba8;
+  color: @ocws_urgent;
 }
-
 button.text_urgent:hover {
-  background-color: alpha(#f38ba8, 0.15);
+  background-color: alpha(@ocws_urgent, 0.15);
 }
 
-/* ============================================================
- * Clock
- * ============================================================ */
-
+/* --- Clock --- */
 button#clock {
   font-size: 13px;
   font-weight: bold;
   padding: 0px 12px;
-  color: #cdd6f4;
+  color: @text_primary;
   min-height: 0px;
 }
-
 button#clock:hover {
-  background-color: alpha(#1e1e2e, 0.4);
+  background-color: @shell_bg_hover;
 }
 
-/* ============================================================
- * Taskbar (bottom bar)
- * ============================================================ */
-
-button.taskbar_item {
-  padding: 2px 8px;
-  margin: 2px;
-  border-radius: 6px;
-  background-color: transparent;
-  color: alpha(#cdd6f4, 0.7);
-  font-size: 11px;
-}
-
-button.taskbar_item:hover {
-  background-color: alpha(#1e1e2e, 0.5);
-  color: #cdd6f4;
-}
-
-button.taskbar_item.focused {
-  background-color: alpha(#89b4fa, 0.2);
-  color: #cdd6f4;
-  border-bottom: 2px solid #89b4fa;
-}
-
-button.taskbar_item.urgent {
-  background-color: alpha(#f38ba8, 0.2);
-  color: #f38ba8;
-}
-
-button.taskbar_item image {
-  min-height: 20px;
-  min-width: 20px;
-  padding: 0px 4px 0px 0px;
-  -GtkWidget-valign: center;
-}
-
-button.taskbar_item label {
-  font-size: 11px;
-  color: inherit;
-  padding: 0px;
-  padding-left: 4px;
-}
-
-/* ============================================================
- * Show Desktop
- * ============================================================ */
-
-button#showdesktop {
-  padding: 4px 8px;
-  margin: 2px;
-  border-radius: 6px;
-  background-color: transparent;
-}
-
-button#showdesktop:hover {
-  background-color: alpha(#1e1e2e, 0.5);
-}
-
-button#showdesktop:checked {
-  background-color: alpha(#89b4fa, 0.2);
-}
-
-/* ============================================================
- * Dock
- * ============================================================ */
-
-button#dock {
-  padding: 4px 8px;
-  margin: 2px;
-  border-radius: 6px;
-  background-color: transparent;
-}
-
-button#dock:hover {
-  background-color: alpha(#1e1e2e, 0.5);
-}
-
-/* ============================================================
- * Tray
- * ============================================================ */
-
+/* --- Tray --- */
 button#tray_item {
   margin: 0px;
   border: none;
   padding: 2px;
-  background-color: transparent;
 }
-
-button#tray_item.passive {
-  -GtkWidget-visible: false;
-}
-
 button#tray_item image {
   -GtkWidget-valign: center;
   -GtkWidget-vexpand: true;
   padding: 2px;
-  margin: 0px;
 }
 
-/* ============================================================
- * Pager (workspaces)
- * ============================================================ */
-
-grid#pager {
-  border-radius: 6px;
-  border-color: alpha(#45475a, 0.3);
-  border-style: solid;
-  border-width: 1px;
-  margin: 4px;
-  padding: 2px 6px;
-  background-color: transparent;
-}
-
-button#pager_item {
-  border-radius: 4px;
-  border: none;
-  outline: 0px;
-  margin: 1px 2px;
-  padding: 2px;
-  min-width: 18px;
-  min-height: 18px;
-  -GtkWidget-halign: center;
-  -GtkWidget-valign: center;
-  background-color: transparent;
-}
-
-button#pager_item label {
-  font-size: 11px;
-  color: alpha(#cdd6f4, 0.3);
-}
-
-button#pager_item.occupied {
-  background-color: alpha(#1e1e2e, 0.3);
-}
-
-button#pager_item.occupied label {
-  color: alpha(#cdd6f4, 0.6);
-}
-
-button#pager_item.active {
-  background-color: alpha(#89b4fa, 0.25);
-  border: 1px solid alpha(#89b4fa, 0.4);
-}
-
-button#pager_item.active label {
-  color: #cdd6f4;
-  font-weight: bold;
-}
-
-button#pager_item:hover {
-  background-color: alpha(#1e1e2e, 0.4);
-}
-
-/* ============================================================
- * Detail popup panels
- * ============================================================ */
-
+/* --- Detail popup panels --- */
 window.detail_popup {
-  background-color: rgba(0, 0, 0, 0);
-  padding: 5px;
+  background: rgba(0, 0, 0, 0);
+  padding: 12px;
 }
 
 grid.detail_grid {
   margin: 5px;
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid alpha(#45475a, 0.4);
-  background-color: alpha(#1e1e2e, 0.95);
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: rgba(30, 30, 46, 0.95);
   -GtkWidget-direction: bottom;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 label.detail_header {
   font-size: 13px;
   font-weight: bold;
-  color: #89b4fa;
+  color: @accent;
   padding-bottom: 8px;
-  border-bottom: 1px solid alpha(#45475a, 0.3);
-  -GtkWidget-hexpand: true;
-}
-
-label.detail_value {
-  font-family: 'Noto Sans Mono', monospace;
-  font-size: 12px;
-  color: #cdd6f4;
-  padding: 8px 0px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   -GtkWidget-hexpand: true;
 }
 
 label.detail_hint {
   font-size: 10px;
-  color: alpha(#cdd6f4, 0.6);
+  color: @text_muted;
   padding-top: 6px;
-  border-top: 1px solid alpha(#45475a, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   -GtkWidget-hexpand: true;
 }
 
-grid.detail_button_row {
-  -GtkWidget-hexpand: true;
-  -GtkWidget-direction: right;
-}
-
-grid.detail_button_row button {
-  padding: 4px 8px;
-  margin: 2px;
-  border: 1px solid alpha(#45475a, 0.4);
-  border-radius: 6px;
-  background-color: alpha(#1e1e2e, 0.3);
-  color: #cdd6f4;
-}
-
-grid.detail_button_row button:hover {
-  background-color: alpha(#1e1e2e, 0.5);
-  border-color: #89b4fa;
-}
-
-scale.detail_slider {
-  -GtkWidget-direction: right;
-  margin: 4px 0px;
-}
-
-progressbar.detail_progress trough {
-  min-height: 6px;
-  border-radius: 3px;
-  background-color: alpha(#1e1e2e, 0.4);
-  border: 1px solid alpha(#45475a, 0.3);
-}
-
-progressbar.detail_progress progress {
-  min-height: 6px;
-  border-radius: 3px;
-  background-color: #a6e3a1;
-}
-
-/* ============================================================
- * Session popup
- * ============================================================ */
-
-window#SessionPopup {
-  background-color: rgba(0, 0, 0, 0);
-  -GtkWidget-direction: right;
-  padding: 5px;
-}
-
-grid#SessionPopup {
-  -GtkWidget-direction: bottom;
-  -GtkWidget-hexpand: true;
-  margin: 5px;
-  border-radius: 10px;
-  border: 1px solid alpha(#45475a, 0.4);
-  padding: 10px;
-  background-color: alpha(#1e1e2e, 0.95);
+/* --- Tooltips --- */
+tooltip {
+  background-color: @shell_bg;
+  color: @text_primary;
+  border-radius: 8px;
+  border: 1px solid @shell_border;
+  padding: 6px 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
-
-/* ============================================================
- * Workspace grid (popup)
- * ============================================================ */
-
-grid#ws_grid {
-  -GtkWidget-direction: right;
-  padding: 4px;
-}
-
-button.ws_button {
-  min-width: 28px;
-  min-height: 28px;
-  border-radius: 6px;
-  padding: 4px;
-  margin: 2px;
-  background-color: alpha(#1e1e2e, 0.4);
-  color: alpha(#cdd6f4, 0.6);
-  font-size: 11px;
-}
-
-button.ws_button:hover {
-  background-color: alpha(#1e1e2e, 0.6);
-  color: #cdd6f4;
-}
-
-/* ============================================================
- * Tooltips
- * ============================================================ */
-
-tooltip {
-  background-color: alpha(#1e1e2e, 0.95);
-  color: #cdd6f4;
-  border-radius: 6px;
-  border: 1px solid alpha(#45475a, 0.4);
-  padding: 6px 10px;
-}
-
 tooltip label {
-  color: #cdd6f4;
+  color: @text_primary;
   font-size: 11px;
 }
 
-/* ============================================================
- * Spacers
- * ============================================================ */
-
+/* --- Spacers --- */
 label#spacer1, label#spacer2 {
   -GtkWidget-hexpand: true;
 }

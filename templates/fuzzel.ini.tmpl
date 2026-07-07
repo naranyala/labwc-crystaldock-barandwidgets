@@ -1,0 +1,39 @@
+# Fuzzel app launcher
+# {{THEME_NAME}} theme
+
+[main]
+dpi-aware=no
+match-mode=exact
+sort-result=yes
+render-workers=4
+match-workers=4
+
+# Appearance
+font={{FUZZEL_FONT}}
+icons-enabled=yes
+icon-theme={{FUZZEL_ICON_THEME}}
+prompt={{FUZZEL_PROMPT}}
+placeholder={{FUZZEL_PLACEHOLDER}}
+anchor=center
+width={{FUZZEL_WIDTH}}
+lines={{FUZZEL_LINES}}
+horizontal-pad={{FUZZEL_HPAD}}
+vertical-pad={{FUZZEL_VPAD}}
+layer=overlay
+
+[colors]
+background={{FUZZEL_BG}}ff
+text={{FUZZEL_FG}}ff
+prompt={{FUZZEL_ACCENT}}ff
+placeholder={{FUZZEL_FG_ALT}}ff
+input={{FUZZEL_FG}}ff
+match={{FUZZEL_ACCENT}}ff
+selection={{FUZZEL_SELECTED}}22
+selection-text={{FUZZEL_FG}}ff
+selection-match={{FUZZEL_ACCENT}}ff
+border={{FUZZEL_BORDER_COLOR}}33
+error={{FUZZEL_URGENT}}ff
+
+[border]
+width={{FUZZEL_BORDER_WIDTH}}
+radius={{FUZZEL_BORDER_RADIUS}}

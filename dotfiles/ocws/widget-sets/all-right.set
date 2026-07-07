@@ -1,0 +1,13 @@
+  # All right-side widgets — full system status + media + clock + tray
+  widget "media-player"
+  widget "cpu-text"
+  widget "memory-text"
+  widget "temperature"
+  widget "network-text"
+  widget "volume-text"
+  widget "brightness-text"
+  widget "battery-text"
+  widget "bluetooth"
+  widget "clock"
+  include("tray.widget")
+  widget "ocws-control-center"

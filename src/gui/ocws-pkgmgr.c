@@ -16,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 #include "utils.h"
+#include "ocws-theme-utils.h"
 
 #define APP_ID "org.ocws.pkgmgr"
 
@@ -611,19 +612,28 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
     /* Apply CSS */
     GtkCssProvider *css = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(css,
-        "window { background-color: #1e1e2e; color: #cdd6f4; }"
-        "headerbar { background-color: #181825; color: #cdd6f4; border-bottom: 1px solid rgba(255,255,255,0.06); }"
-        "textview { background-color: #11111b; color: #a6e3a1; font-family: 'Noto Sans Mono', monospace; font-size: 11px; padding: 8px; }"
-        "textview text { background-color: #11111b; color: #a6e3a1; }"
-        ".dep-card { padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08); background-color: rgba(49,50,68,0.6); margin-bottom: 4px; }"
-        "button { border-radius: 6px; padding: 4px 12px; background-color: rgba(49,50,68,0.8); color: #cdd6f4; border: 1px solid rgba(255,255,255,0.08); }"
-        "button:hover { background-color: rgba(137,180,250,0.15); }"
-        "button.suggested-action { background-color: #89b4fa; color: #1e1e2e; font-weight: bold; }"
+    char css_buf[8192] = {0};
+    int css_pos = 0;
+
+    /* Load tokens.css if available */
+    css_pos = ocws_load_tokens_into_css(css_buf, sizeof(css_buf), css_pos);
+
+    /* App-specific CSS using @ocws_* tokens */
+    snprintf(css_buf + css_pos, sizeof(css_buf) - css_pos,
+        "window { background-color: @ocws_bg; color: @ocws_fg; }"
+        "headerbar { background-color: @ocws_mantle; color: @ocws_fg; border-bottom: 1px solid alpha(@ocws_fg,0.06); }"
+        "textview { background-color: @ocws_crust; color: @ocws_ok; font-family: 'Noto Sans Mono', monospace; font-size: 11px; padding: 8px; }"
+        "textview text { background-color: @ocws_crust; color: @ocws_ok; }"
+        ".dep-card { padding: 8px 12px; border-radius: 8px; border: 1px solid alpha(@ocws_fg,0.08); background-color: alpha(@ocws_surface0,0.6); margin-bottom: 4px; }"
+        "button { border-radius: 6px; padding: 4px 12px; background-color: alpha(@ocws_surface0,0.8); color: @ocws_fg; border: 1px solid alpha(@ocws_fg,0.08); }"
+        "button:hover { background-color: alpha(@ocws_accent,0.15); }"
+        "button.suggested-action { background-color: @ocws_accent; color: @ocws_bg; font-weight: bold; }"
         ".dim-label { opacity: 0.6; font-size: 0.85em; }"
-        "separator { background-color: rgba(255,255,255,0.06); min-height: 1px; }"
-        "* { font-family: 'Noto Sans', 'Adwaita Sans', sans-serif; }",
-        -1, NULL);
+        "separator { background-color: alpha(@ocws_fg,0.06); min-height: 1px; }"
+        "* { font-family: 'Noto Sans', 'Adwaita Sans', sans-serif; }"
+    );
+
+    gtk_css_provider_load_from_data(css, css_buf, -1, NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
         GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
 
@@ -704,7 +714,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
         int installed = check_installed(DEPS[i].check_cmd);
         const char *status_icon = installed == 1 ? "✓" : (installed == 0 ? "✗" : "?");
-        const char *status_color = installed == 1 ? "#a6e3a1" : (installed == 0 ? "#f38ba8" : "#a6adc8");
+        const char *status_color = installed == 1 ? OCWS_OK() : (installed == 0 ? OCWS_URGENT() : OCWS_MUTED());
 
         GtkWidget *icon_lbl = gtk_label_new(NULL);
         char *icon_markup = g_strdup_printf("<span foreground='%s' weight='bold'>%s</span>", status_color, status_icon);

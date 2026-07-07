@@ -1,0 +1,36 @@
+#Api2
+# modes/minimal.mode — Minimal status bar (clock, volume, battery, tray)
+# Usage: sfwbar -c modes/minimal.mode
+
+switcher { disable = true }
+
+# --- Base Settings ---
+include("modes/base.config")
+
+# --- Minimal Bar ---
+bar {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+  exclusive_zone = "auto"
+  size = 28
+
+  # --- Left: Launcher ---
+  widget "launcher"
+
+  # --- Center: Clock ---
+  label { css = "* { -GtkWidget-hexpand: true; }" }
+  widget "clock"
+  label { css = "* { -GtkWidget-hexpand: true; }" }
+
+  # --- Right: Essential Status ---
+  widget "volume-text"
+  widget "battery-text"
+  include("tray.widget")
+}
+
+# --- CSS Modules ---
+include("modes/css-glassmorphism.config")
+include("modes/css-bars.config")
+include("modes/css-widgets.config")
+include("modes/css-popups.config")

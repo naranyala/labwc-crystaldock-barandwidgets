@@ -71,3 +71,26 @@ themes/download-cache/
 *.tar.gz
 *.tar.xz
 *.zip
+
+# AI Models and Python Environments
+*.gguf
+*.safetensors
+*.bin
+models/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ocws-llm-runner
+src/ocws-llm-runner/__pycache__/
+src/ocws-llm-runner/server/__pycache__/
+src/ocws-llm-runner/gui/__pycache__/
+src/ocws-llm-runner/utils/__pycache__/
+
+# Local LLM runner data (sessions, downloaded models)
+.local/share/ocws/llm-runner/
+
+# MkDocs build output
+www/site/

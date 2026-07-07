@@ -1,0 +1,20 @@
+# ocws-llm-runner dependencies
+# Local-first LLM chat and OCR assistant
+
+# GTK3 bindings
+PyGObject>=3.42.0
+
+# HTTP server for GUI-backend communication
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# LLM inference (local)
+llama-cpp-python>=0.2.0
+
+# OCR
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# Utilities
+requests>=2.31.0
+python-dateutil>=2.8.0

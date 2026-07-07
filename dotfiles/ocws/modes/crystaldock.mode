@@ -1,0 +1,17 @@
+#Api2
+# modes/crystaldock.mode — Single status bar + external crystal-dock
+# Usage: sfwbar -c modes/crystaldock.mode
+
+switcher { disable = true }
+
+# --- Base Settings ---
+include("modes/base.config")
+
+# --- Bars ---
+include("modes/statusbar.config")
+
+# --- CSS Modules ---
+include("modes/css-glassmorphism.config")
+include("modes/css-bars.config")
+include("modes/css-widgets.config")
+include("modes/css-popups.config")

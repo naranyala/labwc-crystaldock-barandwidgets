@@ -1,0 +1,211 @@
+#Api2
+# dock-exp.widget — Enhanced dock with pinned apps and running indicators
+# Features: magnification, running state, tooltips, animations
+
+Private {
+  # Scanner for running apps
+  Scanner {
+    Interval = 2000
+    Exec("ocws-state running-apps")
+    Javascript "
+      let lines = input.split('\\n');
+      for(let i=0; i<lines.length; i++) {
+        let parts = lines[i].split('|');
+        if(parts.length >= 2) {
+          SetVar('app_' + parts[0], parts[1]);
+        }
+      }
+    "
+  }
+
+  export grid "dock" {
+    style = "dock_popup_grid"
+    
+    # Pinned apps
+    button {
+      style = "dock_app"
+      tooltip = "Chromium"
+      action = Exec("chromium-browser")
+      image { icon = "chromium-browser" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Firefox"
+      action = Exec("firefox")
+      image { icon = "firefox" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Files"
+      action = Exec("nautilus")
+      image { icon = "org.gnome.Nautilus" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Terminal"
+      action = Exec("xdg-terminal-exec")
+      image { icon = "utilities-terminal" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Editor"
+      action = Exec("kate")
+      image { icon = "org.kde.kate" }
+    }
+
+    # Separator
+    label {
+      style = "dock_separator"
+      value = "|"
+    }
+
+    # System apps
+    button {
+      style = "dock_app"
+      tooltip = "Settings"
+      action = Exec("ocws-settings")
+      image { icon = "preferences-desktop-symbolic" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Screenshot"
+      action = Exec("ocws-shot")
+      image { icon = "applets-screenshooter-symbolic" }
+    }
+
+    button {
+      style = "dock_app"
+      tooltip = "Clipboard"
+      action = Exec("ocws-clip")
+      image { icon = "edit-paste-symbolic" }
+    }
+
+    # Separator
+    label {
+      style = "dock_separator"
+      value = "|"
+    }
+
+    # Launcher
+    button {
+      style = "dock_app launcher"
+      tooltip = "App Launcher"
+      action = Exec("rofi -show drun")
+      image { icon = "view-app-grid-symbolic" }
+    }
+  }
+}
+
+#CSS
+
+/* Dock trigger button — bottom-center floating pill */
+button.dock_trigger {
+  padding: 6px 14px;
+  margin: 0px;
+  border-radius: 16px;
+  background-color: alpha(@ocws_surface0, 0.9);
+  border: 1px solid alpha(@ocws_fg, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  color: @ocws_fg;
+  min-width: 0px;
+  min-height: 0px;
+  transition: all 0.2s ease-out;
+}
+
+button.dock_trigger:hover {
+  background-color: alpha(@ocws_accent, 0.3);
+  border-color: alpha(@ocws_accent, 0.4);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Dock popup window — transparent container */
+window.dock_popup_window {
+  background: rgba(0, 0, 0, 0);
+  padding: 8px;
+}
+
+/* Dock popup grid — glassmorphic panel */
+grid.dock_popup_grid {
+  background-color: alpha(@ocws_bg, 0.95);
+  border-radius: 20px;
+  border: 1px solid alpha(@ocws_fg, 0.1);
+  padding: 8px 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  -GtkWidget-direction: right;
+}
+
+/* Individual dock app button */
+button.dock_app {
+  padding: 8px;
+  margin: 0px 4px;
+  border-radius: 14px;
+  background-color: transparent;
+  border: none;
+  min-width: 48px;
+  min-height: 48px;
+  transition: all 0.2s ease-out;
+}
+
+/* Magnification on hover */
+button.dock_app:hover {
+  background-color: alpha(@ocws_accent, 0.15);
+  padding: 10px;
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px alpha(@ocws_accent, 0.2);
+}
+
+/* Active/running indicator */
+button.dock_app.active {
+  background-color: alpha(@ocws_accent, 0.12);
+  border-bottom: 2px solid @ocws_accent;
+}
+
+button.dock_app.active:hover {
+  background-color: alpha(@ocws_accent, 0.25);
+}
+
+/* Dock app icon */
+button.dock_app image {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0px;
+  -GtkWidget-valign: center;
+  -GtkWidget-halign: center;
+  color: @ocws_fg;
+}
+
+/* Launcher button accent */
+button.dock_app.launcher {
+  background-color: alpha(@ocws_accent, 0.1);
+  border: 1px solid alpha(@ocws_accent, 0.2);
+}
+
+button.dock_app.launcher:hover {
+  background-color: alpha(@ocws_accent, 0.3);
+}
+
+/* Separator */
+label.dock_separator {
+  color: alpha(@ocws_fg, 0.15);
+  font-size: 16px;
+  padding: 0px 4px;
+  min-width: 0px;
+  min-height: 48px;
+  -GtkWidget-valign: center;
+}
+
+/* Running indicator dot */
+label.dock_running {
+  font-size: 6px;
+  color: @ocws_accent;
+  padding: 0px;
+  min-height: 0px;
+  -GtkWidget-valign: end;
+}

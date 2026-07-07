@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=OCWS LLM Runner
+Comment=Local-first LLM Chat and OCR Assistant
+Exec=env PYTHONUNBUFFERED=1 ocws-llm-runner
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=Development;Utility;ArtificialIntelligence;
+Keywords=llm;ai;ocr;assistant;chat;coding;
+StartupNotify=true

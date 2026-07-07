@@ -5,7 +5,8 @@
 
 #include "settings-ui.h"
 #include "settings-tabs.h"
-#include "../utils.h"
+#include "../../core/utils.h"
+#include "../../core/ocws-theme-utils.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -102,7 +103,7 @@ GtkWidget* build_appearance_tab(void) {
         gtk_style_context_add_provider(ctx, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
         g_object_unref(provider);
 
-        g_signal_connect_data(color_btn, "clicked", G_CALLBACK(on_theme_color_clicked), (gpointer)OCWS_THEMES[i].slug, NULL, 0);
+        g_signal_connect(color_btn, "clicked", G_CALLBACK(on_theme_color_clicked), (gpointer)OCWS_THEMES[i].slug);
         gtk_grid_attach(GTK_GRID(grid), color_btn, i % 5, i / 5, 1, 1);
     }
 
@@ -514,7 +515,7 @@ GtkWidget* build_keybinds_tab(void) {
                 gtk_widget_set_margin_end(row, 8);
 
                 char key_markup[256];
-                snprintf(key_markup, sizeof(key_markup), "<span font_family='monospace' weight='bold' foreground='#89b4fa'>%s</span>", display_key);
+                snprintf(key_markup, sizeof(key_markup), "<span font_family='monospace' weight='bold' foreground='%s'>%s</span>", OCWS_ACCENT(), display_key);
                 GtkWidget *key_lbl = gtk_label_new(NULL);
                 gtk_label_set_markup(GTK_LABEL(key_lbl), key_markup);
                 gtk_widget_set_size_request(key_lbl, 180, -1);
@@ -527,7 +528,7 @@ GtkWidget* build_keybinds_tab(void) {
 
                 char action_markup[256];
                 if (command[0]) {
-                    snprintf(action_markup, sizeof(action_markup), "<b>%s</b>  <span foreground='#a6adc8'>%s</span>", action, command);
+                    snprintf(action_markup, sizeof(action_markup), "<b>%s</b>  <span foreground='%s'>%s</span>", action, OCWS_MUTED(), command);
                 } else {
                     snprintf(action_markup, sizeof(action_markup), "<b>%s</b>", action);
                 }

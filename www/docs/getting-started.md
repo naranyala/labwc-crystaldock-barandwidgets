@@ -90,7 +90,7 @@ labwc
 | Service | Command | Role |
 |---------|---------|------|
 | Wallpaper | `ocws-wallpaper ~/Pictures/wallpapers/` | Time-of-day wallpaper transitions |
-| Shell UI | `toggle-shell` / `shell-switcher.sh` | Starts configured shell (dms, noctalia, sfwbar-plus, crystal) |
+| Shell UI | `sfwbar` | Native GTK3 OCWS Interface |
 | OCWS Daemon | `~/.config/ocws/ocws-daemon.sh` | Event Bus IPC listener |
 | Notifications | `ocws-notify` | D-Bus notification daemon (replaces mako) |
 | Clipboard | `wl-paste --watch cliphist store` | Clipboard history daemon |
@@ -140,19 +140,14 @@ Keybindings are defined in `~/.config/labwc/rc.xml`.
 
 ### Shell Modes
 
-OCWS provides multiple desktop paradigms. You can switch between them on the fly:
+OCWS provides multiple desktop paradigms through its modular configuration. You can switch between them on the fly using the GUI:
 
 ```bash
-# Interactive UI
-shell-mode-picker.sh
-
-# CLI
-toggle-shell dms         # default dankmaterialshell
-toggle-shell noctalia    # Noctalia shell
-toggle-shell sfwbar-plus # OCWS dual-panel
-toggle-shell sfwbar      # OCWS minimal
-toggle-shell crystal     # Crystal dock only
+# Launch the graphical settings app
+ocws-settings
 ```
+
+From here you can select between the **Single-Bar** mode and the **Double-Panel** layout (top status bar + bottom dock).
 
 ### Control Center
 

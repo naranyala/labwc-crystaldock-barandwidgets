@@ -1,0 +1,5 @@
+  # ponytail: system-metrics.set — CPU, memory, temp, network widgets
+  widget "cpu-text"
+  widget "memory-text"
+  widget "temperature"
+  widget "network-text"

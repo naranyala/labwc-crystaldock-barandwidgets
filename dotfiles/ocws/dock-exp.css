@@ -1,0 +1,25 @@
+/* dock-exp.css — Dock-specific overrides
+ * Loads after tokens.css for dock-specific styling */
+
+/* Dock-specific token aliases */
+@define-color dock_bg alpha(@ocws_bg, 0.95);
+@define-color dock_surface alpha(@ocws_surface0, 0.8);
+@define-color dock_border alpha(@ocws_fg, 0.1);
+@define-color dock_hover alpha(@ocws_accent, 0.15);
+@define-color dock_active alpha(@ocws_accent, 0.25);
+
+/* Dock animations */
+button.dock_app {
+  transition: all 0.2s ease-out;
+}
+
+button.dock_trigger {
+  transition: all 0.2s ease-out;
+}
+
+/* Make the bar background transparent so only the dock pill is visible */
+window#sfwbar {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}

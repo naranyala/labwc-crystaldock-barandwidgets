@@ -1,0 +1,7 @@
+  # ponytail: right-system.set — system metrics + status for right side
+  include("widget-sets/system-metrics.set")
+  include("widget-sets/status.set")
+  widget "media-player"
+  widget "clock"
+  include("tray.widget")
+  widget "ocws-control-center"

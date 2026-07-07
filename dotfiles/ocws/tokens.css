@@ -14,7 +14,7 @@
 
 /* === Surface Colors === */
 @define-color ocws_surface0 #313244;
-@define-color ocws_surface1 #45475a;
+@define-color ocws_surface1 #1e1e2e;
 @define-color ocws_surface2 #45475a;
 
 /* === Overlay Colors === */
@@ -49,7 +49,7 @@
 @define-color ocws_warning #f9e2af;
 @define-color ocws_ok #a6e3a1;
 @define-color ocws_info #89dceb;
-@define-color ocws_muted #6c7086;
+@define-color ocws_muted #a6adc8;
 
 /* === Derived / Alpha Variants === */
 @define-color ocws_surface0_alpha50 alpha(#313244, 0.5);

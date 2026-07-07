@@ -11,6 +11,7 @@ configuration {
     display-window: " Windows";
     drun-display-format: "{name}";
     terminal: "foot";
+    fuzzy: true;
 }
 
 * {

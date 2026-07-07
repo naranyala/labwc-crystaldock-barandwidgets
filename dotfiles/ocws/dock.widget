@@ -1,122 +1,108 @@
 #Api2
-# dock.widget — macOS-style application dock with magnification
-# Replaces crystal-dock with native sfwbar implementation
+# dock.widget — Inline dock with pinned apps in bottom bar
+# Shows app icons directly in the bar for quick access
 
 Private {
-  # Dock configuration — pinned apps (edit this list)
-  Set DockApps = "chromium-browser,nautilus,kate,foot,rofi"
-
-  export button "dock" {
-    style = "dock_button"
-    tooltip = "Application Dock"
-    action = PopUp("DockPopup")
-
-    image {
-      icon = "grid-dots"
-      css = "* { min-width: 24px; min-height: 24px; }"
-    }
+  # Scanner for running apps
+  Scanner {
+    Interval = 2000
+    Exec("ocws-state running-apps")
+    Javascript "
+      let lines = input.split('\\n');
+      for(let i=0; i<lines.length; i++) {
+        let parts = lines[i].split('|');
+        if(parts.length >= 2) {
+          SetVar('app_' + parts[0], parts[1]);
+        }
+      }
+    "
   }
 
-  PopUp("DockPopup") {
-    style = "dock_popup"
-    grid {
-      style = "dock_grid"
-      # Dock apps are rendered here via include
-      include("dock-apps.widget")
-    }
+  export grid "dock" {
+    style = "dock_inline"
+
+    # --- Pinned Apps (Dynamically included from dock-apps.widget) ---
+    include("dock-apps.widget")
   }
 }
 
 #CSS
 
-/* Dock trigger button — floating pill style */
-button.dock_button {
-  padding: 4px 10px;
-  margin: 4px 2px;
-  border-radius: 16px;
-  background-color: rgba(30, 30, 46, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  color: @text_muted;
-  min-width: 0px;
-  min-height: 0px;
-  transition: all 0.15s ease-out;
-}
-button.dock_button:hover {
-  background-color: rgba(69, 71, 90, 0.6);
-  color: @text_primary;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-}
-
-/* Dock popup window — floating glass panel */
-window.dock_popup {
-  background: rgba(0, 0, 0, 0);
-  padding: 12px;
-}
-
-/* Dock grid — horizontal layout with spacing */
-grid.dock_grid {
-  background-color: rgba(30, 30, 46, 0.92);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 8px 12px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+/* Dock inline grid — horizontal app icons in bar */
+grid.dock_inline {
+  background-color: transparent;
+  border: none;
+  padding: 0px 4px;
+  margin: 0px;
   -GtkWidget-direction: right;
 }
 
-/* Individual dock app button — icon-only with magnification */
+/* Dock app button — icon-only with magnification */
 button.dock_app {
-  padding: 8px;
-  margin: 0px 4px;
-  border-radius: 12px;
+  padding: 4px 6px;
+  margin: 0px 2px;
+  border-radius: 10px;
   background-color: transparent;
   border: none;
-  min-width: 48px;
-  min-height: 48px;
+  min-width: 32px;
+  min-height: 32px;
   transition: all 0.15s ease-out;
 }
 
-/* Magnification effect on hover — scale up icon */
+/* Magnification on hover */
 button.dock_app:hover {
-  background-color: rgba(69, 71, 90, 0.4);
-  padding: 10px;
-  min-width: 56px;
-  min-height: 56px;
-  box-shadow: 0 4px 16px rgba(137, 180, 250, 0.2);
+  background-color: alpha(@ocws_accent, 0.15);
+  padding: 6px 8px;
+  min-width: 36px;
+  min-height: 36px;
+  box-shadow: 0 2px 8px alpha(@ocws_accent, 0.2);
 }
 
-/* Active/running indicator — subtle glow */
+/* Active/running indicator */
 button.dock_app.active {
-  background-color: rgba(137, 180, 250, 0.15);
-  border-bottom: 2px solid @accent;
+  background-color: alpha(@ocws_accent, 0.12);
+  border-bottom: 2px solid @ocws_accent;
 }
 
 button.dock_app.active:hover {
-  background-color: rgba(137, 180, 250, 0.25);
+  background-color: alpha(@ocws_accent, 0.25);
 }
 
-/* Dock app icon — large, centered */
+/* Dock app icon */
 button.dock_app image {
-  min-width: 32px;
-  min-height: 32px;
+  min-width: 24px;
+  min-height: 24px;
   padding: 0px;
   -GtkWidget-valign: center;
   -GtkWidget-halign: center;
+  color: @ocws_fg;
+}
+
+/* Launcher button accent */
+button.dock_app.launcher {
+  background-color: alpha(@ocws_accent, 0.1);
+  border: 1px solid alpha(@ocws_accent, 0.2);
+}
+
+button.dock_app.launcher:hover {
+  background-color: alpha(@ocws_accent, 0.3);
+}
+
+/* Separator */
+label.dock_sep {
+  color: alpha(@ocws_fg, 0.15);
+  font-size: 12px;
+  padding: 0px 4px;
+  min-width: 0px;
+  min-height: 32px;
+  -GtkWidget-valign: center;
 }
 
 /* Running indicator dot */
 label.dock_running {
   font-size: 6px;
-  color: @accent;
+  color: @ocws_accent;
   padding: 0px;
   min-height: 0px;
   -GtkWidget-valign: end;
-}
-
-/* Separator between app groups */
-label.dock_sep {
-  color: rgba(166, 173, 200, 0.2);
-  font-size: 16px;
-  padding: 0px 6px;
-  min-width: 0px;
 }

@@ -1,0 +1,10 @@
+{
+  "pinned": [
+    "chromium-browser",
+    "org.gnome.Nautilus",
+    "utilities-terminal",
+    "org.kde.kate",
+    "ocws-settings",
+    "ocws-shot"
+  ]
+}

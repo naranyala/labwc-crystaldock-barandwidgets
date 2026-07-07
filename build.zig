@@ -9,6 +9,11 @@ pub fn build(b: *std.Build) void {
         "-Wall",
         "-Wextra",
         "-O2",
+        "-Isrc/core",
+        "-Isrc/gui",
+        "-Isrc/cli",
+        "-Isrc/daemons",
+        "-Iprotocols",
     };
 
     // === Unified Binary (Zig harness) ===
@@ -64,7 +69,7 @@ pub fn build(b: *std.Build) void {
             }),
         });
 
-        const src_path = b.fmt("src/{s}.c", .{util_name});
+        const src_path = b.fmt("src/cli/{s}.c", .{util_name});
 
         exe.root_module.addCSourceFile(.{
             .file = b.path(src_path),
@@ -86,11 +91,11 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-kv.c"),
+            .file = b.path("src/core/ocws-kv.c"),
             .flags = c_flags,
         });
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-kv-cli.c"),
+            .file = b.path("src/cli/ocws-kv-cli.c"),
             .flags = c_flags,
         });
 
@@ -109,12 +114,31 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-color.c"),
+            .file = b.path("src/cli/ocws-color.c"),
             .flags = c_flags,
         });
 
         exe.root_module.linkSystemLibrary("cairo", .{});
         exe.root_module.linkSystemLibrary("m", .{});
+        b.installArtifact(exe);
+    }
+
+    // ocws-style: theme CSS generator
+    {
+        const exe = b.addExecutable(.{
+            .name = "ocws-style",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            }),
+        });
+
+        exe.root_module.addCSourceFile(.{
+            .file = b.path("src/cli/ocws-style.c"),
+            .flags = c_flags,
+        });
+
         b.installArtifact(exe);
     }
 
@@ -130,7 +154,7 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-ocr.c"),
+            .file = b.path("src/cli/ocws-ocr.c"),
             .flags = c_flags,
         });
 
@@ -151,7 +175,7 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-notify.c"),
+            .file = b.path("src/daemons/ocws-notify.c"),
             .flags = c_flags,
         });
 
@@ -173,7 +197,7 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-wallpaper.c"),
+            .file = b.path("src/daemons/ocws-wallpaper.c"),
             .flags = c_flags,
         });
 
@@ -193,7 +217,7 @@ pub fn build(b: *std.Build) void {
         });
 
         live_bg.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-live-bg.c"),
+            .file = b.path("src/daemons/ocws-live-bg.c"),
             .flags = c_flags,
         });
         live_bg.root_module.linkSystemLibrary("gtk+-3.0", .{});
@@ -201,6 +225,49 @@ pub fn build(b: *std.Build) void {
         live_bg.root_module.linkSystemLibrary("m", .{});
 
         b.installArtifact(live_bg);
+    }
+
+    // ocws-dock-mgr: GTK3 Dock Manager GUI
+    {
+        const dock_mgr = b.addExecutable(.{
+            .name = "ocws-dock-mgr",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            }),
+        });
+
+        dock_mgr.root_module.addCSourceFile(.{
+            .file = b.path("src/gui/ocws-dock-mgr.c"),
+            .flags = c_flags,
+        });
+        dock_mgr.root_module.linkSystemLibrary("gtk+-3.0", .{});
+        dock_mgr.root_module.linkSystemLibrary("json-c", .{});
+
+        b.installArtifact(dock_mgr);
+    }
+
+    // ocws-dotdesktop-mgr: GTK3 Desktop Entry Manager GUI
+    {
+        const dotdesktop_mgr = b.addExecutable(.{
+            .name = "ocws-dotdesktop-mgr",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            }),
+        });
+
+        dotdesktop_mgr.root_module.addCSourceFile(.{
+            .file = b.path("src/gui/ocws-dotdesktop-mgr.c"),
+            .flags = c_flags,
+        });
+        dotdesktop_mgr.root_module.linkSystemLibrary("gtk+-3.0", .{});
+        dotdesktop_mgr.root_module.linkSystemLibrary("glib-2.0", .{});
+        dotdesktop_mgr.root_module.linkSystemLibrary("gio-2.0", .{});
+
+        b.installArtifact(dotdesktop_mgr);
     }
 
     // ocws-osd-notify: GTK Layer Shell Notification Daemon
@@ -215,7 +282,7 @@ pub fn build(b: *std.Build) void {
         });
 
         osd_notify.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-osd-notify.c"),
+            .file = b.path("src/daemons/ocws-osd-notify.c"),
             .flags = c_flags,
         });
         osd_notify.root_module.linkSystemLibrary("gtk+-3.0", .{});
@@ -238,7 +305,7 @@ pub fn build(b: *std.Build) void {
         });
 
         hypertile.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-hypertile.c"),
+            .file = b.path("src/daemons/ocws-hypertile.c"),
             .flags = c_flags,
         });
         hypertile.root_module.linkSystemLibrary("wayland-client", .{});
@@ -258,17 +325,43 @@ pub fn build(b: *std.Build) void {
         });
 
         welcome.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-welcome.c"),
+            .file = b.path("src/gui/ocws-welcome.c"),
             .flags = c_flags,
         });
         welcome.root_module.addCSourceFile(.{
-            .file = b.path("src/utils.c"),
+            .file = b.path("src/core/utils.c"),
             .flags = c_flags,
         });
         welcome.root_module.linkSystemLibrary("gtk+-3.0", .{});
         welcome.root_module.linkSystemLibrary("glib-2.0", .{});
 
         b.installArtifact(welcome);
+    }
+
+    // ocws-workspace-mgr: GTK3 Workspace Manager
+    {
+        const wsmgr = b.addExecutable(.{
+            .name = "ocws-workspace-mgr",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            }),
+        });
+
+        wsmgr.root_module.addCSourceFile(.{
+            .file = b.path("src/gui/ocws-workspace-mgr.c"),
+            .flags = c_flags,
+        });
+        wsmgr.root_module.addCSourceFile(.{
+            .file = b.path("protocols/wlr-foreign-toplevel-management-unstable-v1-client.c"),
+            .flags = c_flags,
+        });
+        wsmgr.root_module.linkSystemLibrary("gtk+-3.0", .{});
+        wsmgr.root_module.linkSystemLibrary("glib-2.0", .{});
+        wsmgr.root_module.linkSystemLibrary("wayland-client", .{});
+
+        b.installArtifact(wsmgr);
     }
 
     // ocws-settings: GTK3 Settings GUI
@@ -283,19 +376,19 @@ pub fn build(b: *std.Build) void {
         });
 
         settings.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-settings.c"),
+            .file = b.path("src/gui/ocws-settings.c"),
             .flags = c_flags,
         });
         settings.root_module.addCSourceFile(.{
-            .file = b.path("src/settings/settings-ui.c"),
+            .file = b.path("src/gui/settings/settings-ui.c"),
             .flags = c_flags,
         });
         settings.root_module.addCSourceFile(.{
-            .file = b.path("src/settings/settings-tabs.c"),
+            .file = b.path("src/gui/settings/settings-tabs.c"),
             .flags = c_flags,
         });
         settings.root_module.addCSourceFile(.{
-            .file = b.path("src/utils.c"),
+            .file = b.path("src/core/utils.c"),
             .flags = c_flags,
         });
         settings.root_module.linkSystemLibrary("gtk+-3.0", .{});
@@ -316,16 +409,37 @@ pub fn build(b: *std.Build) void {
         });
 
         pkgmgr.root_module.addCSourceFile(.{
-            .file = b.path("src/ocws-pkgmgr.c"),
+            .file = b.path("src/gui/ocws-pkgmgr.c"),
             .flags = c_flags,
         });
         pkgmgr.root_module.addCSourceFile(.{
-            .file = b.path("src/utils.c"),
+            .file = b.path("src/core/utils.c"),
             .flags = c_flags,
         });
         pkgmgr.root_module.linkSystemLibrary("gtk+-3.0", .{});
         pkgmgr.root_module.linkSystemLibrary("glib-2.0", .{});
 
         b.installArtifact(pkgmgr);
+    }
+
+    // ocws-llm-runner: GTK3 LLM UI
+    {
+        const llm_runner = b.addExecutable(.{
+            .name = "ocws-llm-runner",
+            .root_module = b.createModule(.{
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            }),
+        });
+
+        llm_runner.root_module.addCSourceFile(.{
+            .file = b.path("src/gui/ocws-llm-runner.c"),
+            .flags = c_flags,
+        });
+        llm_runner.root_module.linkSystemLibrary("gtk+-3.0", .{});
+        llm_runner.root_module.linkSystemLibrary("json-c", .{});
+
+        b.installArtifact(llm_runner);
     }
 }

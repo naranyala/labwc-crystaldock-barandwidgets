@@ -1,0 +1,5 @@
+  # ponytail: status.set — volume, brightness, battery, bluetooth
+  widget "volume-text"
+  widget "brightness-text"
+  widget "battery-text"
+  widget "bluetooth"

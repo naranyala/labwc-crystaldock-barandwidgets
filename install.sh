@@ -90,6 +90,23 @@ esac
 
 echo -e "  Selected: ${CYAN}${LAUNCHER_DESC}${NC}"
 
+echo -e "\n  Choose your default terminal emulator:"
+echo -e "    1) foot     (lightweight, Wayland-native)"
+echo -e "    2) ghostty  (modern, GPU-accelerated)"
+echo -n "  Enter choice [1-2] (default: 1): "
+read -r terminal_choice
+
+case "${terminal_choice:-1}" in
+    2) TERMINAL="ghostty"
+       TERMINAL_DESC="ghostty"
+       ;;
+    *) TERMINAL="foot"
+       TERMINAL_DESC="foot"
+       ;;
+esac
+
+echo -e "  Selected: ${CYAN}${TERMINAL_DESC}${NC}"
+
 # -------------------------------------------------------------------
 # Stage 3 — Mode-Aware Dependency Resolution
 # -------------------------------------------------------------------
@@ -112,6 +129,7 @@ echo -e "\n  ${CYAN}Engine Status:${NC}"
 echo -e "    labwc        $(check_status labwc)"
 echo -e "    sfwbar       $(check_status sfwbar)"
 echo -e "    $LAUNCHER       $(check_status $LAUNCHER)"
+echo -e "    $TERMINAL       $(check_status $TERMINAL)"
 if [ -n "$SHELL_ENGINE" ]; then
     echo -e "    $SHELL_ENGINE  $(check_status $SHELL_ENGINE)"
 fi
@@ -164,7 +182,7 @@ case "${dep_choice:-1}" in
     *)
         echo -e "\n${YELLOW}⚠${NC} Skipping dependency installation."
         echo -e "  Required engines you'll need to install manually:"
-        for engine in labwc sfwbar $LAUNCHER $SHELL_ENGINE; do
+        for engine in labwc sfwbar $LAUNCHER $TERMINAL $SHELL_ENGINE; do
             [ -n "$engine" ] && ! command -v "$engine" >/dev/null 2>&1 && echo -e "    - $engine"
         done
         echo -e "  See: docs/distro-packages.md"
@@ -179,7 +197,8 @@ esac
 echo -e "\n${YELLOW}⚠ WARNING: This will deploy configurations to ~/.config/ and ~/.local/bin/${NC}"
 echo -e "  Mode: ${CYAN}${MODE_DESC}${NC}"
 echo -e "  Launcher: ${CYAN}${LAUNCHER_DESC}${NC}"
-echo -e "  Affected directories: labwc, ocws, foot, gtk-3.0, gtk-4.0, mako, qt6ct"
+echo -e "  Terminal: ${CYAN}${TERMINAL_DESC}${NC}"
+echo -e "  Affected directories: labwc, ocws, foot, ghostty, gtk-3.0, gtk-4.0, mako, qt6ct"
 
 if [[ "$LAUNCHER" == "rofi" ]]; then
     echo -e "  ${CYAN}  rofi${NC}: ~/.config/rofi/"
@@ -241,7 +260,6 @@ case "$MODE" in
     crystaldock)
         # OCWS infrastructure + single top statusbar (no dock)
         rsync -a --exclude='user.config' --exclude='ocws.config' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>/dev/null || cp -r "$SCRIPT_DIR/dotfiles/ocws/"* ~/.config/ocws/ 2>/dev/null || fail "Failed to deploy OCWS shell"
-        cp "$SCRIPT_DIR/dotfiles/ocws/sfwbar-full.config" ~/.config/ocws/ocws.config 2>/dev/null || true
         ;;
     *)
         # Supporting infrastructure only — no sfwbar bar config at all
@@ -255,7 +273,8 @@ fi
 
 echo "$MODE" > ~/.config/ocws/mode
 echo "$LAUNCHER" > ~/.config/ocws/launcher
-pass "OCWS infrastructure, mode ($MODE), and launcher ($LAUNCHER) synced."
+echo "$TERMINAL" > ~/.config/ocws/terminal
+pass "OCWS infrastructure, mode ($MODE), launcher ($LAUNCHER), and terminal ($TERMINAL) synced."
 
 # 5. Deploy shell-specific configs
 case "$MODE" in
@@ -300,13 +319,25 @@ case "$LAUNCHER" in
         ;;
 esac
 
-# Deploy Foot Terminal
-if [ -d "$SCRIPT_DIR/dotfiles/foot" ]; then
-    info "Deploying Foot Terminal configuration..."
-    mkdir -p ~/.config/foot
-    cp -r "$SCRIPT_DIR/dotfiles/foot/"* ~/.config/foot/ 2>/dev/null || true
-    pass "Foot synced."
-fi
+# Deploy Terminal
+case "$TERMINAL" in
+    foot)
+        if [ -d "$SCRIPT_DIR/dotfiles/foot" ]; then
+            info "Deploying Foot Terminal configuration..."
+            mkdir -p ~/.config/foot
+            cp -r "$SCRIPT_DIR/dotfiles/foot/"* ~/.config/foot/ 2>/dev/null || true
+            pass "Foot synced."
+        fi
+        ;;
+    ghostty)
+        if [ -d "$SCRIPT_DIR/dotfiles/ghostty" ]; then
+            info "Deploying Ghostty Terminal configuration..."
+            mkdir -p ~/.config/ghostty
+            cp -r "$SCRIPT_DIR/dotfiles/ghostty/"* ~/.config/ghostty/ 2>/dev/null || true
+            pass "Ghostty synced."
+        fi
+        ;;
+esac
 
 # 7. Deploy GTK Styling
 if [ -d "$SCRIPT_DIR/dotfiles/gtk-3.0" ] || [ -d "$SCRIPT_DIR/dotfiles/gtk-4.0" ] || [ -d "$SCRIPT_DIR/dotfiles/gtk" ]; then
@@ -378,6 +409,30 @@ if [ -f "$SCRIPT_DIR/dotfiles/wallpaper" ]; then
     pass "wallpaper command installed to ~/.local/bin/wallpaper"
 fi
 
+# 7b2. Deploy ocws-llm-runner launcher
+if [ -f "$SCRIPT_DIR/src/ocws-llm-runner/ocws-llm-runner" ]; then
+    cp "$SCRIPT_DIR/src/ocws-llm-runner/ocws-llm-runner" ~/.local/bin/ocws-llm-runner
+    chmod +x ~/.local/bin/ocws-llm-runner
+    pass "ocws-llm-runner launcher installed to ~/.local/bin/ocws-llm-runner"
+    
+    # Offer to install Python dependencies
+    if command -v python3 >/dev/null 2>&1; then
+        if ! python3 -c "import gi; import flask" 2>/dev/null; then
+            echo -e "\n  ${YELLOW}ocws-llm-runner needs Python dependencies.${NC}"
+            echo -n "  Install them now? [y/N]: "
+            read -r install_deps
+            if [[ "$install_deps" =~ ^[Yy]$ ]]; then
+                pip3 install -r "$SCRIPT_DIR/src/ocws-llm-runner/requirements.txt" 2>/dev/null || \
+                    warn "pip install failed — run manually: pip install -r src/ocws-llm-runner/requirements.txt"
+            else
+                echo -e "  Install manually: pip install -r src/ocws-llm-runner/requirements.txt"
+            fi
+        else
+            pass "ocws-llm-runner Python dependencies already installed"
+        fi
+    fi
+fi
+
 # 7c. Deploy wallpaper sources list
 if [ -f "$SCRIPT_DIR/dotfiles/wallpaper-sources.txt" ]; then
     cp "$SCRIPT_DIR/dotfiles/wallpaper-sources.txt" ~/.config/ocws/wallpaper-sources.txt
@@ -388,6 +443,9 @@ fi
 mkdir -p ~/.local/share/applications
 if [ -d "$SCRIPT_DIR/dotfiles/applications" ]; then
     cp "$SCRIPT_DIR/dotfiles/applications/"*.desktop ~/.local/share/applications/ 2>/dev/null || true
+    if command -v update-desktop-database &> /dev/null; then
+        update-desktop-database ~/.local/share/applications/
+    fi
     pass ".desktop entries deployed to ~/.local/share/applications"
 fi
 
@@ -557,8 +615,10 @@ validate_file "$HOME/.config/labwc/autostart" || ((ERRORS++))
 validate_file "$HOME/.config/labwc/menu.xml" || ((ERRORS++))
 
 # Verify OCWS
-if [[ "$MODE" == "doublepanel" || "$MODE" == "crystaldock" ]]; then
+if [[ "$MODE" == "doublepanel" ]]; then
     validate_file "$HOME/.config/ocws/ocws.config" || ((ERRORS++))
+elif [[ "$MODE" == "crystaldock" ]]; then
+    validate_file "$HOME/.config/ocws/sfwbar-full.config" || ((ERRORS++))
 fi
 
 # Verify OCWS GUI apps
@@ -568,9 +628,18 @@ validate_file "$HOME/.local/bin/ocws-welcome" || ((ERRORS++))
 validate_executable "$HOME/.local/bin/ocws-welcome" || ((ERRORS++))
 validate_file "$HOME/.local/bin/ocws-pkgmgr" || ((ERRORS++))
 validate_executable "$HOME/.local/bin/ocws-pkgmgr" || ((ERRORS++))
+validate_file "$HOME/.local/bin/ocws-dock-mgr" || ((ERRORS++))
+validate_executable "$HOME/.local/bin/ocws-dock-mgr" || ((ERRORS++))
+validate_file "$HOME/.local/bin/ocws-dotdesktop-mgr" || ((ERRORS++))
+validate_executable "$HOME/.local/bin/ocws-dotdesktop-mgr" || ((ERRORS++))
+validate_file "$HOME/.local/bin/ocws-llm-runner" || ((ERRORS++))
+validate_executable "$HOME/.local/bin/ocws-llm-runner" || ((ERRORS++))
 validate_file "$HOME/.local/share/applications/ocws-settings.desktop" || ((ERRORS++))
 validate_file "$HOME/.local/share/applications/ocws-welcome.desktop" || ((ERRORS++))
 validate_file "$HOME/.local/share/applications/ocws-pkgmgr.desktop" || ((ERRORS++))
+validate_file "$HOME/.local/share/applications/ocws-dock-mgr.desktop" || ((ERRORS++))
+validate_file "$HOME/.local/share/applications/ocws-dotdesktop-mgr.desktop" || ((ERRORS++))
+validate_file "$HOME/.local/share/applications/ocws-llm-runner.desktop" || ((ERRORS++))
 
 # Verify Launcher
 if [[ "$LAUNCHER" == "rofi" ]]; then
@@ -602,8 +671,11 @@ for script in "$SCRIPT_DIR/scripts/"*.sh; do
 validate_file_format "$HOME/.config/labwc/rc.xml" xml
 validate_file_format "$HOME/.config/labwc/menu.xml" xml
 
-if [[ "$MODE" == "doublepanel" || "$MODE" == "crystaldock" ]] && [ -f "$HOME/.config/ocws/ocws.config" ]; then
-    validate_content "$HOME/.config/ocws/ocws.config" ocwsconfig
+OCWS_CFG="$HOME/.config/ocws/ocws.config"
+if [[ "$MODE" == "doublepanel" ]] && [ -f "$OCWS_CFG" ]; then
+    validate_content "$OCWS_CFG" ocwsconfig
+elif [[ "$MODE" == "crystaldock" ]] && [ -f "$HOME/.config/ocws/sfwbar-full.config" ]; then
+    validate_content "$HOME/.config/ocws/sfwbar-full.config" ocwsconfig
 fi
 
 if [[ "$LAUNCHER" == "rofi" ]] && [ -f "$HOME/.config/rofi/config.rasi" ]; then
@@ -629,7 +701,8 @@ info "OCWS Deployment Complete! 🚀"
 echo -e "\n${CYAN}=== Quick Install Complete ===${NC}"
 echo -e "  Installed Mode: ${GREEN}${MODE_DESC}${NC}"
 echo -e "  Launcher: ${GREEN}${LAUNCHER_DESC}${NC}"
-echo -e "${CYAN}  Note:${NC} You must manually install labwc, sfwbar, and ${LAUNCHER} first."
+echo -e "  Terminal: ${GREEN}${TERMINAL_DESC}${NC}"
+echo -e "${CYAN}  Note:${NC} You must manually install labwc, sfwbar, ${LAUNCHER}, and ${TERMINAL} first."
 echo -e "  Use ./install-distribution.sh for automatic distro detection and installation."
 echo -e "\n${CYAN}  Next Steps:${NC}"
 echo -e "  • Install dependencies using: ./install-distribution.sh (Recommended)"
