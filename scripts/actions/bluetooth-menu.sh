@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # bluetooth-menu.sh
 # A rofi-based Bluetooth menu using bluetoothctl
 # Part of the OCWS Bash Utility Collection

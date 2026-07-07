@@ -5,7 +5,7 @@
 # how GNOME media players display cover art. It integrates with both
 # media.widgets with optional cover art support.
 
-set -uo pipefail
+set -euo pipefail
 
 OCWS_DIR="${OCWS_DIR:-$HOME/.config/ocws}"
 MEDIA_DIR="$OCWS_DIR/dotfiles/ocws"

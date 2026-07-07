@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # download-icons.sh
 # Downloads and installs popular icon themes from GitHub
 # Part of the OCWS Bash Utility Collection

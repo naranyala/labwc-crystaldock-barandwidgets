@@ -128,7 +128,7 @@ button.module:active {
  * Clock — centered, prominent
  * ============================================================ */
 
-label#clock {
+button#clock {
   font-size: 13px;
   font-weight: bold;
   padding: 4px 12px;

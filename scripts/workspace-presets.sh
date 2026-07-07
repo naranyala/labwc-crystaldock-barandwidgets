@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # workspace-presets.sh — Advanced workspace management with save/load presets
 #
 

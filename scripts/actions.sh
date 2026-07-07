@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # actions.sh — Dispatcher for modular action scripts
 
 if [ -z "$1" ]; then

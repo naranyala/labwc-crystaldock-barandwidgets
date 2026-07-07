@@ -23,13 +23,13 @@ mkdir -p "$BACKUP_DIR/.config/gtk-3.0" "$BACKUP_DIR/.config/gtk-4.0"
 mkdir -p "$BACKUP_DIR/.config/crystal-dock/labwc"
 
 # Save current config if it exists
-if [ -f "~/.config/gtk-3.0/settings.ini" ]; then
+if [ -f "$HOME/.config/gtk-3.0/settings.ini" ]; then
     cp ~/.config/gtk-3.0/settings.ini "$BACKUP_DIR/gtk-3.0.ini"
 fi
-if [ -f "~/.config/gtk-4.0/settings.ini" ]; then
+if [ -f "$HOME/.config/gtk-4.0/settings.ini" ]; then
     cp ~/.config/gtk-4.0/settings.ini "$BACKUP_DIR/gtk-4.0.ini"
 fi
-if [ -f "~/.config/crystal-dock/labwc/appearance.conf" ]; then
+if [ -f "$HOME/.config/crystal-dock/labwc/appearance.conf" ]; then
     cp ~/.config/crystal-dock/labwc/appearance.conf "$BACKUP_DIR/crystal-dock-appearance.conf"
 fi
 

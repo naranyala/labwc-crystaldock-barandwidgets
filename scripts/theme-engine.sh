@@ -14,7 +14,7 @@
 #   [rofi], [sfwbar], [zebar], [mako], [foot], [qt6ct], [cursor], [ocws]
 #
 
-set -uo pipefail
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -27,10 +27,7 @@ NC='\033[0m'
 info() { echo -e "  ${CYAN}→${NC} $1" >&2; }
 pass()  { echo -e "  ${GREEN}✓${NC} $1" >&2; }
 fail()  { echo -e "  ${RED}✗${NC} $1" >&2; exit 1; }
-warn()  { echo -e "  ${YELLOW}⚠${NC} $1" >&2; }
-
-YELLOW='\033[1;33m'
-warn() { echo -e "  ${YELLOW}⚠${NC} $*" >&2; }
+warn()  { echo -e "  ${YELLOW}⚠${NC} $*" >&2; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Find project root: check env var, then walk up from script dir
@@ -170,7 +167,7 @@ render_template() {
         local var_value=""
 
                 case "$var_name" in
-                    THEME_NAME)      var_value=$(ini_get "meta.name" "$(basename "$theme_file" .ini)" ) ;;
+                    THEME_NAME)      var_value=$(ini_get "meta.name" "$(basename "${theme_file:-$template_file}" .ini)" ) ;;
                     COLOR_BG)        var_value=$(ini_get "colors.bg" "#1e1e2e") ;;
                     COLOR_FG)        var_value=$(ini_get "colors.fg" "#cdd6f4") ;;
                     COLOR_SURFACE)   var_value=$(ini_get "colors.surface" "#1e1e2e") ;;
@@ -183,7 +180,7 @@ render_template() {
                     OCWS_BORDER)     var_value=$(ini_get "ocws.border" "1") ;;
                     OCWS_RADIUS)     var_value=$(ini_get "ocws.radius" "8") ;;
                     OCWS_SHADOW)     var_value=$(ini_get "ocws.shadow" "4") ;;
-                    ICON_THEME)      var_value=$(ini_get "icons.theme" "") ;;
+                    ICON_THEME)      var_value=$(ini_get "gtk3.icon_theme" "") ;;
                     FONT_MONO)       var_value=$(ini_get "fonts.mono" "Noto Sans Mono CJK SC:hilight=Filled") ;;
                     THEMERC_FONT)        var_value=$(ini_get "labwc.themerc_font" "sans 10") ;;
                     THEMERC_ACTIVE_BG)   var_value=$(ini_get "labwc.themerc_active_bg" "#1e1e2e") ;;

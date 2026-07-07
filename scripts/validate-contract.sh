@@ -4,7 +4,7 @@
 # Validates that emit script and widgets match the variable contract
 # -------------------------------------------------------------------
 
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"

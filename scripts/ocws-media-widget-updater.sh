@@ -2,7 +2,7 @@
 # ocws-media-widget-updater.sh - Enhanced media widget integration
 # "ponytail: this exists" - the simplest solution for album art in OCWS
 
-set -uo pipefail
+set -euo pipefail
 
 OCWS_DIR="${OCWS_DIR:-$HOME/.config/ocws}"
 MEDIA_DIR="$OCWS_DIR/dotfiles/ocws"

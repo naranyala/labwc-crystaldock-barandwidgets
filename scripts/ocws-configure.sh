@@ -4,7 +4,7 @@
 # Central configuration management for all OCWS components
 # Primary purpose: simplify setup and configuration
 
-set -uo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"

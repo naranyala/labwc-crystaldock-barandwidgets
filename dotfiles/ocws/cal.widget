@@ -207,8 +207,8 @@ grid#cal_popup_grid {
 
 grid#cal_grid {
   padding-top: 10px;
-  -GtkWidget-column-homogenious: true;
-  -GtkWidget-row-homogenious: true;
+  -GtkWidget-column-homogeneous: true;
+  -GtkWidget-row-homogeneous: true;
 }
 
 image#cal_arrow {
@@ -227,7 +227,7 @@ label#cal_clock_date {
   -GtkWidget-hexpand: true;
   -GtkWidget-align: 0.0;
   margin-bottom: 10px;
-  border-bottom: dashed 1px @border;
+  border-bottom: dashed 1px @shell_border;
 }
 
 label#cal_date {
@@ -253,7 +253,7 @@ label#cal_cell_days {
 }
 
 label#cal_cell_today {
-  border: solid 1px @theme_border_color;
+  border: solid 1px @shell_border;
 }
 
 label#cal_cell_other {
@@ -264,7 +264,7 @@ label#cal_hint {
   font-size: 10px;
   color: alpha(@theme_text_color, 0.5);
   padding-top: 6px;
-  border-top: 1px solid alpha(@theme_border_color, 0.3);
+  border-top: 1px solid alpha(@shell_border, 0.3);
   -GtkWidget-hexpand: true;
 }
 

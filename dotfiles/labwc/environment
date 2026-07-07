@@ -14,8 +14,8 @@ CLUTTER_BACKEND=wayland
 MOZ_ENABLE_WAYLAND=1
 ELECTRON_OZONE_PLATFORM_HINT=auto
 
-# GTK Rendering (Wayland only — no x11 fallback)
-GDK_BACKEND=wayland
+# GTK Rendering (Wayland preferred, X11 fallback for compatibility)
+GDK_BACKEND=wayland,x11
 GTK_USE_PORTAL=0
 
 # Cursor

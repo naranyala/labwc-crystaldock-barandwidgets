@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # icon-theme-picker.sh
 # Uses rofi to select and apply an icon theme system-wide
 # Part of the OCWS Bash Utility Collection

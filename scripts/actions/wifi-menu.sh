@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # wifi-menu.sh
 # A rofi-based Wi-Fi menu using nmcli
 # Part of the OCWS Bash Utility Collection

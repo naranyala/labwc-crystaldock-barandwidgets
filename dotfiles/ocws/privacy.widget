@@ -28,7 +28,7 @@ Private {
 }
 
 #CSS
-button#privacy_active {
+button.privacy_active {
   min-width: 20px;
   min-height: 20px;
   padding: 4px;

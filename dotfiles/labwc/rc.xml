@@ -167,39 +167,6 @@
     <keybind key="S-h"><action name="ShowPopup"><popup>KeybindsPopup</popup></action></keybind>
   </keyboard>
 
-  <mouse>
-    <context name="Frame">
-      <mousebind button="A-Left" action="Drag">
-        <action name="Move"/>
-      </mousebind>
-    </context>
-    <context name="Titlebar">
-      <mousebind button="Left" action="Press">
-        <action name="Focus"/>
-        <action name="Raise"/>
-      </mousebind>
-      <mousebind button="Left" action="Drag">
-        <action name="Move"/>
-      </mousebind>
-      <mousebind button="Left" action="DoubleClick">
-        <action name="ToggleMaximize"/>
-      </mousebind>
-    </context>
-    <context name="Client">
-      <mousebind button="A-Left" action="Drag">
-        <action name="Move"/>
-      </mousebind>
-      <mousebind button="A-Right" action="Drag">
-        <action name="Resize"/>
-      </mousebind>
-    </context>
-    <context name="Root">
-      <mousebind button="Left" action="Press">
-        <action name="ShowMenu"><menu>root-menu</menu></action>
-      </mousebind>
-    </context>
-  </mouse>
-
   <applications>
     <!-- sfwbar: layer shell statusbar (disabled by default — unstable) -->
     <application class="sfwbar">

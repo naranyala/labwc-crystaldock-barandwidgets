@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 #
 # install-fonts.sh — Install required fonts for labwc desktop
 #

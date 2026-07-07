@@ -8,7 +8,7 @@
 # Fetches album art from provided URLs or searches MusicBrainz/discogs
 # and saves to $HOME/.config/ocws/cover-art/
 
-set -uo pipefail
+set -euo pipefail
 
 OCWS_DIR="$HOME/.config/ocws"
 ART_DIR="$OCWS_DIR/cover-art"

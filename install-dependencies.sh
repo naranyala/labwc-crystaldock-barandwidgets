@@ -36,6 +36,8 @@ elif [[ "$ID" == "debian" || "$ID" == "ubuntu" || "${ID_LIKE:-}" == *"debian"* |
     DISTRO_FAMILY="debian"
 elif [[ "$ID" == "fedora" || "${ID_LIKE:-}" == *"fedora"* ]]; then
     DISTRO_FAMILY="fedora"
+elif [[ "$ID" == "opensuse"* || "$ID" == "suse" || "${ID_LIKE:-}" == *"suse"* ]]; then
+    DISTRO_FAMILY="suse"
 else
     fail "Unsupported distribution family: $ID. Please install dependencies manually."
 fi
