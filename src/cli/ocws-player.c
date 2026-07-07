@@ -157,7 +157,9 @@ void mute_cmd() {
     }
 }
 
-int main(int argc, char **argv) {
+int cli_player_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     const char *mode = "help";
     if (argc > 1) mode = argv[1];
 

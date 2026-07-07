@@ -869,7 +869,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
  * Entry point
  * ================================================================ */
 
-int main(int argc, char **argv) {
+int gui_welcome_main(int argc, char **argv) {
     /* Honour --force to show even if disabled */
     gboolean force = FALSE;
     int new_argc = 0;

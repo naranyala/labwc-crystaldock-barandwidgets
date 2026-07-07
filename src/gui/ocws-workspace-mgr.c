@@ -664,7 +664,7 @@ static GLogWriterOutput filter_log(GLogLevelFlags level, const GLogField *fields
     return g_log_writer_default(level, fields, n, user);
 }
 
-int main(int argc, char **argv) {
+int gui_workspace_mgr_main(int argc, char **argv) {
     g_log_set_writer_func(filter_log, NULL, NULL);
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

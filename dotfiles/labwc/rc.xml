@@ -4,6 +4,9 @@
     <decoration>server</decoration>
   </core>
 
+  <!-- Default margin for maximized windows -->
+  <margin top="10" bottom="10" left="10" right="10" />
+
   <theme>
     <name>Clearlooks</name>
     <font place="ActiveWindow">

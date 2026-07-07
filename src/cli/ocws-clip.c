@@ -99,7 +99,9 @@ void paste_text() {
     }
 }
 
-int main(int argc, char *argv[]) {
+int cli_clip_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     const char *mode = "show";
     if (argc > 1) mode = argv[1];
     

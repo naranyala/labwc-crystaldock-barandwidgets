@@ -58,4 +58,31 @@ To achieve "Visual and Functional Fluidity": The launcher should feel like an ex
 - [x] **sfwbar-01-dynamic-island-canvas.patch**: `bar.c` - Enforces a full-width transparent window for fluid animations.
 - [x] **sfwbar-02-spring-animations.patch**: `popup.c` - Injects cubic-bezier transitions for popup menus.
 - [ ] **sfwbar-03-wayland-blur.patch**: `wayland.c` - Implement native `ext-session-lock` or `layer-shell` blur protocol for premium frosted glass.
-- [ ] **sfwbar-04-fuzzel-embed.patch**: `widget.c` - Allow `sfwbar` to embed `fuzzel` directly inside its widget tree as a child layer surface, enabling true Apple-style Dynamic Island morphing.
+
+---
+
+## 🏗️ Architectural Foundation: The Zig $\rightarrow$ C Bridge
+*Goal: Transform the ecosystem into a unified high-performance hybrid. Zig acts as the orchestrator; C is the workhorse engine. Zig $\rightarrow$ C dependency only.*
+
+### 🛠️ The Core Rule
+**Zig consumes C; C never knows Zig exists.** No more `fork()`/`execvp()` to spawn child processes. Zig directly imports and calls the C logic.
+
+### 🏗️ Implementation Roadmap
+
+#### Phase 1: Refactor C Entry Points (`src/cli/` & `src/gui/`)
+- [ ] Rename `main(int argc, char **argv)` in every utility (e.g. `ocws-sysmon.c`) to namespaced functions like `int cli_sysmon_main(int argc, char **argv)`.
+- [ ] Create a central C header `src/core/ocws_commands.h` exposing all these function signatures.
+- [ ] Resolve any global variable conflicts or overlapping GTK includes between utilities.
+
+#### Phase 2: Static Library Compilation (`build.zig`)
+- [ ] Group C utilities into logical static libraries (e.g., `libocws_cli`, `libocws_gui`, `libocws_core`).
+- [ ] Replace the loop generating 75 isolated binaries with `b.addStaticLibrary` blocks.
+- [ ] Link these static libraries directly into the single unified `ocws` Zig executable.
+
+#### Phase 3: The Zig Orchestrator (`src/ocws.zig`)
+- [ ] Replace `execExternal()` POSIX logic with Zig's `@cImport("core/ocws_commands.h")`.
+- [ ] Parse arguments dynamically via Zig's `std.process.argsAlloc`.
+- [ ] Pass execution control natively to the mapped C functions (e.g., `return c.cli_sysmon_main(...)`).
+
+#### Phase 4: GTK App Integration
+- [ ] Wrap GTK event loops safely. Create a separate Zig binary (`ocws-gui`) if necessary to isolate heavyweight GTK linkage from the lightning-fast CLI orchestrator.

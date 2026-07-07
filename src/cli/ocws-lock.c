@@ -96,7 +96,9 @@ void stop_daemon() {
     }
 }
 
-int main(int argc, char *argv[]) {
+int cli_lock_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     const char *mode = "lock";
     if (argc > 1) mode = argv[1];
     

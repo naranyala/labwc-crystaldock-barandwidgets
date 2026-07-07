@@ -169,7 +169,9 @@ static void write_tokens_css(const char* output_dir) {
     printf("Generated: %s\n", path);
 }
 
-int main(int argc, char** argv) {
+int cli_style_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <theme.ini> [--tokens|--preview]\n", argv[0]);
         return 1;

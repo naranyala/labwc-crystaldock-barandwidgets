@@ -240,7 +240,9 @@ static void usage(const char *prog) {
         prog, MAX_COLORS, prog, prog, prog);
 }
 
-int main(int argc, char *argv[]) {
+int cli_color_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     int ncolors = 6;
     const char *format = "hex";
     const char *outfile = NULL;

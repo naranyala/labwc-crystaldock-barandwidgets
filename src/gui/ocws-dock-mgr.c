@@ -672,7 +672,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int main(int argc, char **argv) {
+int gui_dock_mgr_main(int argc, char **argv) {
     detect_shell();
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

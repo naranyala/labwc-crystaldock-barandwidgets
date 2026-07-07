@@ -169,7 +169,9 @@ void print_temp() {
     }
 }
 
-int main() {
+int cli_sysmon_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     unsigned long long idle, tot;
     get_cpu(&idle, &tot);
     

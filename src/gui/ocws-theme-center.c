@@ -1075,7 +1075,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
  * Entry Point
  * ============================================================ */
 
-int main(int argc, char *argv[]) {
+int gui_theme_center_main(int argc, char **argv) {
     init_paths();
     discover_themes();
 

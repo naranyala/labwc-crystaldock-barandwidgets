@@ -115,7 +115,9 @@ static void usage(const char *prog) {
         prog, prog, prog, prog);
 }
 
-int main(int argc, char *argv[]) {
+int cli_volume_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     static struct option long_options[] = {
         {"device", required_argument, 0, 'd'},
         {"step", required_argument, 0, 's'},

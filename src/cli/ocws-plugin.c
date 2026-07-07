@@ -9,7 +9,9 @@ void print_help(const char* prog) {
     printf("Usage: %s <plugin_dir> <output_config>\n", prog);
 }
 
-int main(int argc, char* argv[]) {
+int cli_plugin_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     if (argc < 3) {
         print_help(argv[0]);
         return 1;

@@ -236,7 +236,9 @@ static void usage(const char *prog) {
         prog, prog, prog, prog);
 }
 
-int main(int argc, char *argv[]) {
+int cli_recorder_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     signal(SIGINT, on_signal);
     signal(SIGTERM, on_signal);
 

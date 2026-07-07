@@ -417,7 +417,9 @@ static int cmd_config(void) {
  * Main
  * ================================================================ */
 
-int main(int argc, char **argv) {
+int cli_fonts_main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
     ocws_fonts_init_paths(&g_paths);
 
     if (argc < 2) {

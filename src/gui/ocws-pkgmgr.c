@@ -918,7 +918,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
  * Entry point
  * ================================================================ */
 
-int main(int argc, char **argv) {
+int gui_pkgmgr_main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);
