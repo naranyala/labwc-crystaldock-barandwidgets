@@ -1,0 +1,8 @@
+--- a/src/fuzzel-menu.c
++++ b/src/fuzzel-menu.c
+@@ -45,6 +45,7 @@ typedef struct {
+   char *name;
+   char *description;
+   GdkPixbuf *icon;
++  int type; // 0: command, 1: app, 2: file
+ } FuzzelEntry;

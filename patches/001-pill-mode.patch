@@ -1,0 +1,17 @@
+--- a/src/fuzzel-drawing.c
++++ b/src/fuzzel-drawing.c
+@@ -120,6 +120,10 @@ void fuzzel_draw_selection(Fuzzel *f, GdkRectangle *rect) {
+   GdkRGBA color;
+   gdk_rgba_parse(&color, f->config.selection_color);
+ 
++  // PATCH: Support dynamic accent color for Dank/Noctalia aesthetic
++  if (f->accent_color)
++    gdk_rgba_parse(&color, f->accent_color);
++
+   cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
+-  cairo_rectangle(cr, rect->x, rect->y, rect->width, rect->height);
++  // PATCH: Rounded "Pill" corners instead of sharp rectangles
++  cairo_new_sub_path(cr);
++  cairo_arc(cr, rect->x + rect->width/2, rect->y + rect->height/2, rect->height/2, 0, 2*M_PI);
++  cairo_fill(cr);
+ }

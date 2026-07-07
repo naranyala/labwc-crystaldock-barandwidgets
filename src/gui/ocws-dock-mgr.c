@@ -15,6 +15,7 @@
 #include <json-c/json.h>
 #include "ocws-theme-utils.h"
 #include "../libocws/gtk.h"
+#include "../libocws/gtk_builder.h"
 
 #define APP_ID "org.ocws.dock-mgr"
 
@@ -484,7 +485,7 @@ static void add_app(GtkWidget *widget, gpointer data) {
     GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
     gtk_container_set_border_width(GTK_CONTAINER(content), 20);
     
-    GtkWidget *header = ocws_gtk_label_header("Add Application");
+    GtkWidget *header = ocws_label("Add Application", NULL);
     gtk_box_pack_start(GTK_BOX(content), header, FALSE, FALSE, 0);
 
     GtkWidget *label = gtk_label_new("App ID (e.g., firefox):");
@@ -495,7 +496,7 @@ static void add_app(GtkWidget *widget, gpointer data) {
     gtk_entry_set_placeholder_text(GTK_ENTRY(entry), "firefox");
     gtk_box_pack_start(GTK_BOX(content), entry, FALSE, FALSE, 12);
 
-    GtkWidget *hint = ocws_gtk_label_subtext("The identifier used by your shell.");
+    GtkWidget *hint = ocws_label("The identifier used by your shell.", NULL);
     gtk_widget_set_halign(hint, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(content), hint, FALSE, FALSE, 0);
 
@@ -601,18 +602,18 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header), TRUE);
     gtk_header_bar_set_title(GTK_HEADER_BAR(header), "Dock Manager");
     
-    GtkWidget *shell_label = ocws_gtk_label_subtext(current_config.shell);
+    GtkWidget *shell_label = ocws_label(current_config.shell, NULL);
     gtk_header_bar_set_subtitle(GTK_HEADER_BAR(header), gtk_label_get_text(GTK_LABEL(shell_label)));
     gtk_widget_destroy(shell_label); // We only needed the text
 
     gtk_window_set_titlebar(GTK_WINDOW(window), header);
 
-    GtkWidget *vbox = ocws_gtk_vbox(0);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
     /* Toolbar */
-    GtkWidget *toolbar = ocws_gtk_hbox(8);
-    ocws_gtk_set_margins(toolbar, 8, 8, 12, 12);
+    GtkWidget *toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_top(toolbar,  8); gtk_widget_set_margin_bottom(toolbar,  8); gtk_widget_set_margin_start(toolbar,  12); gtk_widget_set_margin_end(toolbar,  12);
     gtk_box_pack_start(GTK_BOX(vbox), toolbar, FALSE, FALSE, 0);
 
     GtkWidget *add_btn = gtk_button_new_with_label("+ Add");
@@ -629,7 +630,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_set_hexpand(spacer, TRUE);
     gtk_box_pack_start(GTK_BOX(toolbar), spacer, TRUE, TRUE, 0);
 
-    GtkWidget *save_btn = ocws_gtk_button_primary("Save");
+    GtkWidget *save_btn = gtk_button_new_with_label("Save");
+    gtk_style_context_add_class(gtk_widget_get_style_context(save_btn), "suggested-action");
     g_signal_connect(save_btn, "clicked", G_CALLBACK(save_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(toolbar), save_btn, FALSE, FALSE, 0);
 
@@ -637,12 +639,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_widget_set_vexpand(scroll, TRUE);
     gtk_box_pack_start(GTK_BOX(vbox), scroll, TRUE, TRUE, 0);
-    app_list = ocws_gtk_vbox(0);
+    app_list = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(scroll), app_list);
 
     /* Backup section */
-    GtkWidget *backup_box = ocws_gtk_hbox(8);
-    ocws_gtk_set_margins(backup_box, 0, 8, 12, 12);
+    GtkWidget *backup_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_top(backup_box,  0); gtk_widget_set_margin_bottom(backup_box,  8); gtk_widget_set_margin_start(backup_box,  12); gtk_widget_set_margin_end(backup_box,  12);
     gtk_box_pack_start(GTK_BOX(vbox), backup_box, FALSE, FALSE, 0);
 
     GtkWidget *backup_entry = gtk_entry_new();
@@ -660,9 +662,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
     /* Status */
     GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_box_pack_start(GTK_BOX(vbox), sep, FALSE, FALSE, 0);
-    status_label = ocws_gtk_label_subtext("Ready");
+    status_label = ocws_label("Ready", NULL);
     gtk_widget_set_halign(status_label, GTK_ALIGN_START);
-    ocws_gtk_set_margins(status_label, 0, 8, 12, 0);
+    gtk_widget_set_margin_top(status_label,  0); gtk_widget_set_margin_bottom(status_label,  8); gtk_widget_set_margin_start(status_label,  12); gtk_widget_set_margin_end(status_label,  0);
     gtk_box_pack_start(GTK_BOX(vbox), status_label, FALSE, FALSE, 0);
 
     load_pinned_apps();

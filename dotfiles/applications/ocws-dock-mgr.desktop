@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=OCWS Dock Manager
 Comment=Manage dock pinned apps across shells
-Exec=/home/naranyala/.local/bin/ocws-dock-mgr
+Exec=ocws-dock-mgr
 Icon=preferences-desktop-panel
 Terminal=false
 Type=Application
