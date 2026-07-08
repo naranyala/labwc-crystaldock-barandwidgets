@@ -20,6 +20,6 @@ SELECTION=$(echo -e "$OPTIONS" | sort | rofi -dmenu -p "Select Shell Mode: " -th
 if [ -n "$SELECTION" ]; then
     MODE_ID="${MODES[$SELECTION]}"
     if [ -n "$MODE_ID" ]; then
-        /home/naranyala/.local/bin/shell-switcher.sh "$MODE_ID" &
+        shell-switcher.sh "$MODE_ID" &
     fi
 fi

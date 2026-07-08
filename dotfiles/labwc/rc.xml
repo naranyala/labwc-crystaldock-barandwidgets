@@ -9,7 +9,7 @@
 
   <theme>
     <name>Clearlooks</name>
-    <cornerRadius>12</cornerRadius>
+    <cornerRadius>8</cornerRadius>
     <font place="ActiveWindow">
       <name>sans</name>
       <size>10</size>
@@ -163,6 +163,10 @@
     <!-- Theme Switcher -->
     <keybind key="A-F12"><action name="Execute"><command>theme next</command></action></keybind>
     <keybind key="A-S-F12"><action name="Execute"><command>theme</command></action></keybind>
+
+    <!-- Labwc Theme Switcher (compositor only, live reload) -->
+    <keybind key="W-F12"><action name="Execute"><command>labwc-theme next</command></action></keybind>
+    <keybind key="W-S-F12"><action name="Execute"><command>labwc-theme</command></action></keybind>
 
     <!-- Superkey+f - Toggle Launcher (fuzzel/rofi) and Theme Reload -->
     <keybind key="W-f"><action name="Execute"><command>actions.sh launcher-toggle</command></action></keybind>

@@ -137,13 +137,13 @@ echo -e "  Selected: ${CYAN}${LAUNCHER_DESC}${NC}"
 
 echo -e "\n  Choose your default terminal emulator:"
 echo -e "    1) foot     (lightweight, Wayland-native)"
-echo -e "    2) ghostty  (modern, GPU-accelerated)"
+echo -e "    2) contour  (modern, GPU-accelerated, configurable)"
 echo -n "  Enter choice [1-2] (default: 1): "
 read -r terminal_choice
 
 case "${terminal_choice:-1}" in
-    2) TERMINAL="ghostty"
-       TERMINAL_DESC="ghostty"
+    2) TERMINAL="contour"
+       TERMINAL_DESC="contour"
        ;;
     *) TERMINAL="foot"
        TERMINAL_DESC="foot"
@@ -243,7 +243,7 @@ echo -e "\n${YELLOW}⚠ WARNING: This will deploy configurations to ~/.config/ a
 echo -e "  Mode: ${CYAN}${MODE_DESC}${NC}"
 echo -e "  Launcher: ${CYAN}${LAUNCHER_DESC}${NC}"
 echo -e "  Terminal: ${CYAN}${TERMINAL_DESC}${NC}"
-echo -e "  Affected directories: labwc, ocws, foot, ghostty, gtk-3.0, gtk-4.0, mako, qt6ct"
+echo -e "  Affected directories: labwc, ocws, foot, contour, gtk-3.0, gtk-4.0, mako, qt6ct"
 
 if [[ "$LAUNCHER" == "rofi" ]]; then
     echo -e "  ${CYAN}  rofi${NC}: ~/.config/rofi/"
@@ -374,12 +374,12 @@ case "$TERMINAL" in
             pass "Foot synced."
         fi
         ;;
-    ghostty)
-        if [ -d "$SCRIPT_DIR/dotfiles/ghostty" ]; then
-            info "Deploying Ghostty Terminal configuration..."
-            mkdir -p ~/.config/ghostty
-            cp -r "$SCRIPT_DIR/dotfiles/ghostty/"* ~/.config/ghostty/ 2>/dev/null || true
-            pass "Ghostty synced."
+    contour)
+        if [ -d "$SCRIPT_DIR/dotfiles/contour" ]; then
+            info "Deploying Contour Terminal configuration..."
+            mkdir -p ~/.config/contour
+            cp -r "$SCRIPT_DIR/dotfiles/contour/"* ~/.config/contour/ 2>/dev/null || true
+            pass "Contour synced."
         fi
         ;;
 esac

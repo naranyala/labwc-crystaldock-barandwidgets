@@ -16,7 +16,7 @@ OCWS takes that conviction and translates it into GTK3 native widgets and C-leve
 
 - **Cohesive visual language**: glassmorphic surfaces, consistent radii, deliberate alpha values — all maintained across every widget through a shared token system (`tokens.css`), not duplicated per-component.
 - **Opinionated defaults, no ceiling**: you get a polished desktop on install. If you want to replace every widget, rewrite the bar, or swap the compositor — the modular architecture does not fight you.
-- **Theme as a first-class surface**: like DMS's matugen pipeline, OCWS has a theme engine that propagates a single palette into 11+ config surfaces — labwc themerc, sfwbar CSS, GTK settings, fuzzel, foot, rofi, mako, Qt6, and the OCWS glass CSS. Change one INI file, the whole desktop re-themes.
+- **Theme as a first-class surface**: like DMS's matugen pipeline, OCWS has a theme engine that propagates a single palette into 14 config surfaces — labwc themerc, sfwbar CSS, GTK settings, fuzzel, foot, contour, rofi, mako, Qt6, color tokens, and the OCWS glass CSS. Change one INI file, the whole desktop re-themes.
 
 ### What we drew from Noctalia
 
@@ -60,11 +60,11 @@ OCWS is a modular platform built on four layers:
 | Layer | Component | Role |
 |-------|-----------|------|
 | Compositor | `labwc` | Wayland session, window management, input handling, keybindings |
-| Shell UI | `sfwbar` / `noctalia` / `crystal-dock` | Selectable shell modes (OCWS dual-panel, Noctalia, Crystal Dock) via shell-switcher |
+| Shell UI | `sfwbar` / `noctalia` / `crystal-dock` | Selectable shell modes (OCWS dual-panel, Noctalia, Crystal Dock) via shell-switcher. Default: noctalia |
 | Launcher | `fuzzel` | Application launcher and dmenu-mode script runner |
 | Layer Shell | `gtk-layer-shell` | Anchors the shell surfaces to Wayland outputs |
 
-Supporting services: `ocws-notify` (D-Bus notifications), `swayidle` + `swaylock` (idle/lock), `cliphist` + `wl-clipboard` (clipboard), `playerctl` (media), `ocws-brightness` (backlight), `gammastep` (night light), `grim` + `slurp` (screenshots).
+Supporting services: `ocws-notify` (D-Bus notifications), `swayidle` + `swaylock` (idle/lock), `cliphist` + `wl-clipboard` (clipboard), `playerctl` (media), `ocws-brightness` (backlight), `gammastep` (night light), `grim` + `slurp` (screenshots). Terminals: `foot` (default), `contour` (GPU-accelerated alternative).
 
 ### Data Flow
 
@@ -139,6 +139,7 @@ labwc-fuzzel-sfwbar/
 |   |
 |   |-- fuzzel/                   Fuzzel launcher config
 |   |-- foot/                     Foot terminal config
+|   |-- contour/                  Contour terminal config (GPU-accelerated)
 |   |-- gtk-3.0/                  GTK3 settings
 |   |-- gtk-4.0/                  GTK4 settings
 |   |-- fontconfig/               Font rendering config
@@ -148,7 +149,8 @@ labwc-fuzzel-sfwbar/
 |
 |-- scripts/                      Automation and IPC tools
 |   |-- theme-engine.sh           INI profiles -> rendered configs
-|   |-- theme.sh                  Theme switching CLI
+|   |-- theme.sh                  Full theme switching CLI
+|   |-- labwc-theme.sh            Labwc-only theme switching (live reload)
 |   |-- ocws-emit.sh              Event Bus emitter (namespace -> sfwbar variable)
 |   |-- ocws-plugin-loader.sh     Dynamic plugin include generator
 |   |-- ocws-state.sh             State coordinator for daemon
@@ -158,8 +160,14 @@ labwc-fuzzel-sfwbar/
 |   |-- keybinds.sh               Keybinding manager
 |   |-- backup.sh / restore.sh    Config backup/restore
 |   |-- dotfiles-sync.sh          Sync dotfiles to installed locations
-|   |-- debug-labwc.sh            Labwc debug launcher
-|   `-- actions/                  Action scripts for keybindings and widgets
+ |   |-- debug-labwc.sh            Labwc debug launcher
+ |   |-- validate-all.sh           Unified validator — runs all checks
+ |   |-- validate-themes.sh        Theme INI consistency and completeness
+ |   |-- validate-build.sh         Build targets, source files, orphaned code
+ |   |-- validate-widgets.sh       Widget schema validation
+ |   |-- validate-sfwbar.sh        SFWBar config validation
+ |   |-- validate-contract.sh      IPC variable contract validation
+ |   `-- actions/                  Action scripts for keybindings and widgets
 |       |-- audio.sh              Volume control + emit
 |       |-- brightness.sh         Backlight control + emit
 |       |-- screenshot.sh         grim + slurp capture
@@ -191,14 +199,16 @@ labwc-fuzzel-sfwbar/
 |   |-- ocws.css.tmpl             OCWS CSS template
 |   |-- fuzzel.ini.tmpl           Fuzzel config template
 |   |-- foot.ini.tmpl             Foot terminal template
+|   |-- contour.yml.tmpl          Contour terminal template
 |   |-- environment.tmpl          Environment variables template
 |   |-- gtk3-settings.ini.tmpl    GTK3 settings template
 |   |-- gtk4-settings.ini.tmpl    GTK4 settings template
 |   |-- mako.ini.tmpl             Notification config template
 |   |-- rofi.rasi.tmpl            Rofi config template
-|   |-- qt6ct.conf.tmpl           Qt6 theme template
-|   |-- gtk.css.tmpl              GTK CSS template
-|   `-- themerc-override.tmpl     WM theme override template
+ |   |-- qt6ct.conf.tmpl           Qt6 theme template
+ |   |-- gtk.css.tmpl              GTK CSS template
+ |   |-- tokens.css.tmpl           Color tokens template (single source of truth)
+ |   `-- themerc-override.tmpl     WM theme override template
 |
 |-- contracts/                    IPC contracts
 |   `-- variables.ini             Variable name source of truth
@@ -367,10 +377,9 @@ Each theme `.ini` file contains sections for every config surface:
 [fonts]      Font family and size
 [sfwbar]     Panel CSS colors
 [rofi]       Rofi launcher colors
-[mako]       Notification colors
-[foot]       Terminal colors
-[qt6ct]      Qt6 theme colors
-[cursor]     Cursor theme
+[mako]       Notification daemon colors
+[qt6ct]      Qt6 theme settings
+[cursor]     Cursor theme and size
 ```
 
 ### Usage
@@ -388,7 +397,7 @@ theme-engine.sh preview themes/tokyo-night.ini
 
 ### Generated Config Surfaces
 
-The theme engine produces 11 output files from templates:
+The theme engine produces 14 output files from templates:
 
 1. `~/.config/ocws/ocws.css` (from `templates/ocws.css.tmpl`)
 2. `~/.config/ocws/theme.css` (from `templates/sfwbar.css.tmpl`)
@@ -401,6 +410,9 @@ The theme engine produces 11 output files from templates:
 9. `~/.config/mako/config` (from `templates/mako.ini.tmpl`)
 10. `~/.config/qt6ct/qt6ct.conf` (from `templates/qt6ct.conf.tmpl`)
 11. `~/.config/gtk-3.0/gtk.css` (from `templates/gtk.css.tmpl`)
+12. `~/.config/contour/contour.yml` (from `templates/contour.yml.tmpl`)
+13. `~/.config/ocws/tokens.css` (from `templates/tokens.css.tmpl`)
+14. `~/.config/gtk-3.0/tokens.css` + `~/.config/gtk-4.0/tokens.css` (from `templates/tokens.css.tmpl`)
 
 ## Build System
 
@@ -478,6 +490,7 @@ To compile the latest upstream versions of labwc, sfwbar, and fuzzel:
 | `~/.config/crystal-dock/` | `panel_1.conf`, `appearance.conf` (if using crystal mode) |
 | `~/.config/fuzzel/` | `fuzzel.ini` |
 | `~/.config/foot/` | `foot.ini` |
+| `~/.config/contour/` | `contour.yml` (if using contour terminal) |
 | `~/.local/bin/` | All `scripts/*.sh` and C helper binaries (`ocws-*`) |
 | `~/.local/bin/actions/` | All `scripts/actions/*.sh` |
 
@@ -487,14 +500,18 @@ Defined in `~/.config/labwc/rc.xml`:
 
 | Key | Action |
 |-----|--------|
-| `Super+Enter` | Launch terminal (foot) |
-| `Super+D` | Launch app launcher (fuzzel) |
-| `Super+V` | Open clipboard history (cliphist + fuzzel) |
-| `Super+Q` | Close focused window |
-| `Super+F` | Toggle fullscreen |
-| `Super+1-9` | Switch to workspace 1-9 |
+| `Alt+Return` | Launch terminal (foot or contour) |
+| `Alt+A` | Launch app launcher (fuzzel/rofi) |
+| `Alt+Q` | Close focused window |
+| `Alt+F` | Toggle fullscreen |
+| `Super+A` | Toggle maximize |
+| `Alt+1-9` | Switch to workspace 1-9 |
 | `Super+Shift+1-9` | Move window to workspace 1-9 |
 | `Alt+Tab` | Cycle through windows |
+| `Alt+F12` | Cycle full theme |
+| `Super+F12` | Cycle labwc theme only |
+| `Super+F` | Toggle launcher (fuzzel/rofi) |
+| `Super+H` | Show keybinds popup |
 | `XF86AudioRaiseVolume` | Volume up |
 | `XF86AudioLowerVolume` | Volume down |
 | `XF86AudioMute` | Toggle mute |

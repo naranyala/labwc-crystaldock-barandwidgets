@@ -2,8 +2,8 @@
 #
 # labwc autostart — runs once at compositor startup
 #
-# Default shell: dms
-# Alternative:   noctalia, crystal-dock, sfwbar (use toggle-shell to switch)
+# Default shell: noctalia
+# Alternative:   dms, crystal-dock, sfwbar (use toggle-shell to switch)
 #
 
 # Ensure local and package manager binaries are in PATH
@@ -15,7 +15,17 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
 fi
 if command -v systemctl >/dev/null 2>&1; then
   systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
-  killall -q xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk 2>/dev/null || true
+fi
+
+# --- XDG Desktop Portal ---
+# Kill stale portals, then start fresh instances
+killall -q xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk 2>/dev/null || true
+sleep 0.2
+if command -v xdg-desktop-portal >/dev/null 2>&1; then
+  xdg-desktop-portal &
+fi
+if command -v xdg-desktop-portal-wlr >/dev/null 2>&1; then
+  xdg-desktop-portal-wlr &
 fi
 
 # --- Touchpad natural scroll ---
@@ -49,14 +59,14 @@ if command -v toggle-shell >/dev/null 2>&1; then
     MODE="$(cat "$HOME/.config/labwc-widgets/shell-mode")"
     toggle-shell "$MODE"
   else
-    toggle-shell dms
+    toggle-shell noctalia
   fi
 elif command -v shell-switcher.sh >/dev/null 2>&1; then
   shell-switcher.sh
 else
-  echo "warning: no shell switcher found, starting dms directly"
-  if command -v dms >/dev/null 2>&1; then
-    nohup dms run > /dev/null 2>&1 &
+  echo "warning: no shell switcher found, starting noctalia directly"
+  if command -v noctalia >/dev/null 2>&1; then
+    nohup noctalia > /dev/null 2>&1 &
   elif command -v sfwbar >/dev/null 2>&1; then
     nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
   fi
@@ -97,17 +107,33 @@ elif command -v redshift >/dev/null 2>&1; then
   redshift -t 6500:3500 -g 1.0 -r &
 fi
 
+# --- Polkit Agent ---
+if command -v /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1; then
+  /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
+elif command -v polkit-agent-helper-1 >/dev/null 2>&1; then
+  polkit-agent-helper-1 &
+fi
+
 # --- Authentication & Keyring ---
 if command -v gnome-keyring-daemon >/dev/null 2>&1; then
   gnome-keyring-daemon --start --components=secrets,ssh,pkcs11 &
 fi
 
 # --- Idle & Screen Locker ---
+# Read theme background color for lock screen
+LOCK_COLOR="1e1e2e"
+if [ -f "$HOME/.config/ocws/tokens.css" ]; then
+  THEME_BG=$(grep -m1 '@define-color ocws_base' "$HOME/.config/ocws/tokens.css" 2>/dev/null | awk '{print $NF}' | tr -d ';')
+  if [ -n "$THEME_BG" ]; then
+    LOCK_COLOR="${THEME_BG#\#}"
+  fi
+fi
+
 if command -v swayidle >/dev/null 2>&1; then
   swayidle -w \
-    timeout 300 'swaylock -f -c 000000' \
+    timeout 300 "swaylock -f -c ${LOCK_COLOR}" \
     timeout 360 'wlr-randr --output eDP-1 --off' resume 'wlr-randr --output eDP-1 --on' \
-    before-sleep 'swaylock -f -c 000000' &
+    before-sleep "swaylock -f -c ${LOCK_COLOR}" &
 fi
 
 # --- Screenshot daemon ---

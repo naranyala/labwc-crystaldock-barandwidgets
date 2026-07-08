@@ -194,20 +194,53 @@ render_template() {
                     OSD_TEXT)            var_value=$(ini_get "labwc.osd_text" "#cdd6f4") ;;
                     OSD_ACCENT)          var_value=$(ini_get "labwc.osd_accent" "#89b4fa") ;;
                     OSD_INACTIVE)        var_value=$(ini_get "labwc.osd_inactive" "#6c7086") ;;
+                    TITLEBAR_LAYOUT)     var_value=$(ini_get "labwc.titlebar_layout" "icon:iconify,max,close") ;;
                     *)
                         if [[ "$var_name" == FOOT_* ]]; then
                             local foot_key="${var_name#FOOT_}"
                             foot_key="${foot_key,,}"
-                            if [[ "$foot_key" == fg ]]; then foot_key="color_foreground"; fi
-                            if [[ "$foot_key" == bg ]]; then foot_key="color_background"; fi
-                            if [[ "$foot_key" == cursor_fg ]]; then foot_key="color_cursor_fg"; fi
-                            if [[ "$foot_key" == cursor_bg ]]; then foot_key="color_cursor_bg"; fi
-                            if [[ "$foot_key" == selection_bg ]]; then foot_key="color_selection_bg"; fi
-                            if [[ "$foot_key" == selection_fg ]]; then foot_key="color_selection_fg"; fi
-                            if [[ "$foot_key" =~ ^regular_[0-7]$ ]]; then foot_key="color_${foot_key}"; fi
-                            if [[ "$foot_key" =~ ^bright_[0-7]$ ]]; then foot_key="color_${foot_key}"; fi
-                            var_value=$(ini_get "foot.$foot_key" "")
-                            if [[ "$foot_key" == color_* ]]; then
+                            # Map FOOT vars to colors section (foot uses bare hex, no #)
+                            case "$foot_key" in
+                                fg)            var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                bg)            var_value=$(ini_get "colors.base" "#1e1e2e") ;;
+                                cursor_fg)     var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                cursor_bg)     var_value=$(ini_get "colors.base" "#1e1e2e") ;;
+                                selection_bg)  var_value=$(ini_get "colors.surface1" "#45475a") ;;
+                                selection_fg)  var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                regular_0)     var_value=$(ini_get "colors.base" "#1e1e2e") ;;
+                                regular_1)     var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                regular_2)     var_value=$(ini_get "colors.green" "#a6e3a1") ;;
+                                regular_3)     var_value=$(ini_get "colors.yellow" "#f9e2af") ;;
+                                regular_4)     var_value=$(ini_get "colors.blue" "#89b4fa") ;;
+                                regular_5)     var_value=$(ini_get "colors.mauve" "#cba6f7") ;;
+                                regular_6)     var_value=$(ini_get "colors.teal" "#94e2d5") ;;
+                                regular_7)     var_value=$(ini_get "colors.subtext1" "#bac2de") ;;
+                                bright_0)      var_value=$(ini_get "colors.surface1" "#45475a") ;;
+                                bright_1)      var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                bright_2)      var_value=$(ini_get "colors.green" "#a6e3a1") ;;
+                                bright_3)      var_value=$(ini_get "colors.yellow" "#f9e2af") ;;
+                                bright_4)      var_value=$(ini_get "colors.blue" "#89b4fa") ;;
+                                bright_5)      var_value=$(ini_get "colors.mauve" "#cba6f7") ;;
+                                bright_6)      var_value=$(ini_get "colors.teal" "#94e2d5") ;;
+                                bright_7)      var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                font)
+                                    local raw_font
+                                    raw_font=$(ini_get "fonts.monospace" "Noto Sans Mono 10")
+                                    # Convert "Family Size" to "Family:size=Size" for foot
+                                    raw_font="${raw_font%% }"
+                                    if [[ "$raw_font" =~ ^(.+)[[:space:]]([0-9]+)$ ]]; then
+                                        var_value="${BASH_REMATCH[1]}:size=${BASH_REMATCH[2]}"
+                                    else
+                                        var_value="$raw_font"
+                                    fi
+                                    ;;
+                                term)          var_value="xterm-256color" ;;
+                                pad)           var_value="12x12" ;;
+                                shell)         var_value="/bin/bash" ;;
+                                *)             var_value="" ;;
+                            esac
+                            # Foot uses bare hex without # prefix
+                            if [[ "$foot_key" =~ ^(fg|bg|cursor_fg|cursor_bg|selection_bg|selection_fg|regular_[0-7]|bright_[0-7])$ ]]; then
                                 var_value="${var_value#\#}"
                             fi
                         elif [[ "$var_name" == ROFI_* ]]; then
@@ -219,6 +252,43 @@ render_template() {
                         elif [[ "$var_name" == MAKO_* ]]; then
                             local key="${var_name#MAKO_}"
                             var_value=$(ini_get "mako.${key,,}" "")
+                        elif [[ "$var_name" == CONTOUR_* ]]; then
+                            local key="${var_name#CONTOUR_}"
+                            key="${key,,}"
+                            # Map CONTOUR vars to colors section
+                            case "$key" in
+                                bg)              var_value=$(ini_get "colors.base" "#1e1e2e") ;;
+                                fg)              var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                bright_fg)       var_value="#ffffff" ;;
+                                dim_fg)          var_value=$(ini_get "colors.overlay0" "#6c7086") ;;
+                                accent)          var_value=$(ini_get "colors.blue" "#89b4fa") ;;
+                                urgent)          var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                surface)         var_value=$(ini_get "colors.surface1" "#45475a") ;;
+                                muted)           var_value=$(ini_get "colors.overlay0" "#6c7086") ;;
+                                selection)       var_value=$(ini_get "colors.surface1" "#45475a") ;;
+                                hyperlink_normal) var_value=$(ini_get "colors.yellow" "#f9e2af") ;;
+                                hyperlink_hover)  var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                font_family)     var_value=$(ini_get "fonts.monospace" "Noto Sans Mono") ;;
+                                font_size)       var_value="11" ;;
+                                profile_name)    var_value="terminal" ;;
+                                normal_0)  var_value=$(ini_get "colors.surface1" "#45475a") ;;
+                                normal_1)  var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                normal_2)  var_value=$(ini_get "colors.green" "#a6e3a1") ;;
+                                normal_3)  var_value=$(ini_get "colors.yellow" "#f9e2af") ;;
+                                normal_4)  var_value=$(ini_get "colors.blue" "#89b4fa") ;;
+                                normal_5)  var_value=$(ini_get "colors.mauve" "#cba6f7") ;;
+                                normal_6)  var_value=$(ini_get "colors.teal" "#94e2d5") ;;
+                                normal_7)  var_value=$(ini_get "colors.subtext1" "#bac2de") ;;
+                                bright_0)  var_value=$(ini_get "colors.surface2" "#585b70") ;;
+                                bright_1)  var_value=$(ini_get "colors.red" "#f38ba8") ;;
+                                bright_2)  var_value=$(ini_get "colors.green" "#a6e3a1") ;;
+                                bright_3)  var_value=$(ini_get "colors.yellow" "#f9e2af") ;;
+                                bright_4)  var_value=$(ini_get "colors.blue" "#89b4fa") ;;
+                                bright_5)  var_value=$(ini_get "colors.mauve" "#cba6f7") ;;
+                                bright_6)  var_value=$(ini_get "colors.teal" "#94e2d5") ;;
+                                bright_7)  var_value=$(ini_get "colors.text" "#cdd6f4") ;;
+                                *) var_value="" ;;
+                            esac
                         elif [[ "$var_name" == QT_* ]]; then
                             local key="${var_name#QT_}"
                             var_value=$(ini_get "qt6ct.${key,,}" "")
@@ -242,6 +312,7 @@ render_template() {
                             local key="${var_name#COLOR_}"
                             var_value=$(ini_get "colors.${key,,}" "")
                         elif [[ "$var_name" == BG_ALPHA || "$var_name" == SURFACE_ALPHA || "$var_name" == BORDER_ALPHA ]]; then
+                            :
                         elif [[ "$var_name" == FONT_SIZE || "$var_name" == FONT_SIZE_SMALL || "$var_name" == MODULE_* ]]; then
                             var_value=$(ini_get "sfwbar.${var_name,,}" "")
                         elif [[ "$var_name" == CORNER_RADIUS ]]; then
@@ -294,10 +365,9 @@ declare -A OUTPUT_MAP=(
     [fuzzel.ini.tmpl]="$HOME/.config/fuzzel/fuzzel.ini"
     [mako.ini.tmpl]="$HOME/.config/mako/config"
     [foot.ini.tmpl]="$HOME/.config/foot/foot.ini"
+    [contour.yml.tmpl]="$HOME/.config/contour/contour.yml"
     [qt6ct.conf.tmpl]="$HOME/.config/qt6ct/qt6ct.conf"
     [ocws.css.tmpl]="$HOME/.config/ocws/ocws.css"
-)
-
 )
 
 # ============================================================
@@ -332,12 +402,17 @@ cmd_current() {
 cmd_apply() {
     local theme_file=""
     local profile="full"
+    local labwc_only=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --profile)
                 profile="$2"
                 shift 2
+                ;;
+            --labwc-only)
+                labwc_only=true
+                shift
                 ;;
             *)
                 theme_file="$1"
@@ -361,6 +436,7 @@ cmd_apply() {
 
     local applied=0
 
+    if [[ "$labwc_only" == false ]]; then
     # GTK CSS (same for GTK3 and GTK4)
     mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
     local gtk_css
@@ -399,6 +475,7 @@ cmd_apply() {
         pass "GTK4 settings.ini"
         applied=$((applied + 1))
     fi
+    fi # !labwc_only
 
     # Labwc themerc-override
     local themerc
@@ -418,6 +495,30 @@ cmd_apply() {
         applied=$((applied + 1))
     fi
 
+    # Sync rc.xml theme section (cornerRadius, font)
+    local rc_xml="$HOME/.config/labwc/rc.xml"
+    if [[ -f "$rc_xml" ]]; then
+        local corner_radius
+        corner_radius=$(ini_get "labwc.cornerRadius" "8")
+        local themerc_font_name
+        themerc_font_name=$(ini_get "labwc.themerc_font" "sans 10" | awk '{print $1}')
+        local themerc_font_size
+        themerc_font_size=$(ini_get "labwc.themerc_font" "sans 10" | awk '{print $2}')
+
+        # Update cornerRadius
+        sed -i "s|<cornerRadius>[^<]*</cornerRadius>|<cornerRadius>${corner_radius}</cornerRadius>|" "$rc_xml"
+
+        # Update titlebar font name and size (ActiveWindow)
+        sed -i "/<font place=\"ActiveWindow\">/,/<\/font>/{
+            s|<name>[^<]*</name>|<name>${themerc_font_name}</name>|
+            s|<size>[^<]*</size>|<size>${themerc_font_size}</size>|
+        }" "$rc_xml"
+
+        pass "labwc rc.xml synced (cornerRadius=${corner_radius}, font=${themerc_font_name} ${themerc_font_size})"
+        applied=$((applied + 1))
+    fi
+
+    if [[ "$labwc_only" == false ]]; then
     # SFWBar CSS
     local sfwbar_css
     sfwbar_css=$(render_template "$TEMPLATES_DIR/sfwbar.css.tmpl")
@@ -482,6 +583,16 @@ cmd_apply() {
         applied=$((applied + 1))
     fi
 
+    # Contour
+    local contour_yml
+    contour_yml=$(render_template "$TEMPLATES_DIR/contour.yml.tmpl")
+    if [[ -n "$contour_yml" ]]; then
+        mkdir -p "$HOME/.config/contour"
+        echo "$contour_yml" > "$HOME/.config/contour/contour.yml"
+        pass "contour.yml"
+        applied=$((applied + 1))
+    fi
+
     # Qt
     local qt_conf
     qt_conf=$(render_template "$TEMPLATES_DIR/qt6ct.conf.tmpl")
@@ -498,6 +609,7 @@ cmd_apply() {
         pass "Widget profile set to: $profile"
         applied=$((applied + 1))
     fi
+    fi # !labwc_only
 
     echo ""
     pass "Theme $theme_name applied successfully (${applied} files generated/updated)"
@@ -571,9 +683,6 @@ cmd_export() {
         fi
     fi
 
-        fi
-    fi
-
     info "Theme files exported to dotfiles/"
 }
 
@@ -619,6 +728,8 @@ if [[ "$#" -lt 1 ]]; then
     echo ""
     echo "Commands:"
     echo "  apply <theme.ini>       Apply theme (generate + install)"
+    echo "    --labwc-only          Only generate labwc outputs (themerc-override, environment, rc.xml)"
+    echo "    --profile <name>      Set widget profile (standard|full)"
     echo "  preview <theme.ini>     Show what would be generated"
     echo "  list                    List available themes"
     echo "  current                 Show active theme"
