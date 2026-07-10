@@ -30,8 +30,10 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
-BUILD_DIR="/tmp/ocws-audio-build"
-mkdir -p "$BUILD_DIR"; cd "$BUILD_DIR"
+BUILD_DIR=$(mktemp -d /tmp/ocws-audio-build-XXXXXX)
+trap 'rm -rf "$BUILD_DIR"' EXIT
+
+cd "$BUILD_DIR"
 
 # ---- Distro package install helper -------------------------------------
 detect_pkg() {

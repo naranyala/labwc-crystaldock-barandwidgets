@@ -3,7 +3,7 @@
 # OCWS Session Registration Validator
 # -------------------------------------------------------------------
 
-set -uo pipefail
+set -euo pipefail
 
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
@@ -35,7 +35,7 @@ Icon=labwc
 Type=Application
 DesktopNames=labwc;wlroots"
 
-    TEMP_FILE="/tmp/labwc.desktop"
+    TEMP_FILE=$(mktemp /tmp/labwc-session-XXXXXX.desktop)
     echo "$DESKTOP_CONTENT" > "$TEMP_FILE"
     
     if command -v pkexec &>/dev/null; then

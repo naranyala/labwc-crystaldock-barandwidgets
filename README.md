@@ -72,6 +72,45 @@ All system interactions are handled by compiled C binaries built with the Zig bu
 | ocws-emit | IPC event emitter to sfwbar |
 | ocws-validate | Configuration validator |
 
+### GUI Applications
+
+All GUI utilities are native GTK3 C binaries. They share a common pattern: header bar with integrated stack switcher, layer-shell anchoring via `ocws_background_app_init`, and tray icon for background persistence.
+
+**System Management:**
+
+| Application | Description |
+|-------------|-------------|
+| `ocws-settings` | Central settings panel — theme picker, corner radius sliders, font scaling, icon/cursor themes, keybinding presets, healthcheck |
+| `ocws-theme-center` | Theme browser with live INI preview, palette visualization, and one-click apply |
+| `ocws-fonts-mgr` | Font manager — install, preview, and remove fonts |
+| `ocws-dock-mgr` | Visual dock layout editor with drag-and-drop app pinning |
+| `ocws-dotdesktop-mgr` | .desktop file manager — create, edit, and organize application entries |
+| `ocws-pkgmgr` | Package manager frontend — install and remove system packages |
+| `ocws-welcome` | First-run setup wizard — walks through pairing, apps install, and config |
+| `ocws-workspace-mgr` | Virtual desktop manager — rename, reorder, assign apps to workspaces |
+| `ocws-llm-runner` | Local LLM chat interface (runs models via llama.cpp) |
+
+**Audio Visualization (10-Band EQ + Spectrum Analyzer):**
+
+| Application | Description |
+|-------------|-------------|
+| `ocws-equalizer` | 10-band graphic EQ with 6 presets + 64-bar FFT spectrum visualizer, L/R level meters, 4-band display, and centroid indicator |
+| `ocws-equalizer-gl` | OpenGL-accelerated equalizer with real-time waveform rendering |
+| `ocws-speaker-gl` | OpenGL speaker visualization — frequency response and phase plot |
+| `ocws-speaker-qs` | Quick-settings speaker panel: volume, balance, mute, output selector |
+| `ocws-waveform-gl` | OpenGL waveform viewer — real-time stereo PCM trace with scrolling display |
+| `ocws-waveform-qs` | Quick-settings waveform — lightweight preview, route-aware |
+
+**Utilities & Demos:**
+
+| Application | Description |
+|-------------|-------------|
+| `ocws-snake-game` | Classic snake game running as a GTK3 layer-shell overlay |
+| `ocws-todomvc` | TODO MVC demo app — reference implementation for the widget system |
+| `ocws-datetime` | Floating date/time display widget |
+| `ocws-wallpaper-picker` | Wallpaper browser — preview and apply from local collection |
+| `ocws-equalizer-qs` | Quick-settings equalizer — compact UI for slider adjustments |
+
 ---
 
 ## Theme Engine

@@ -118,7 +118,9 @@ elif command -v redshift >/dev/null 2>&1; then
 fi
 
 # --- Polkit Agent ---
-if command -v /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1; then
+if command -v /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1; then
+  /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
+elif command -v /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 >/dev/null 2>&1; then
   /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 elif command -v polkit-agent-helper-1 >/dev/null 2>&1; then
   polkit-agent-helper-1 &

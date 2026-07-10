@@ -9,7 +9,7 @@ set -euo pipefail
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$HOME/go/bin:$HOME/.npm-global/bin:$HOME/.bun/bin:$PATH"
 
 CFG="${1:-$HOME/.config/labwc/autorun.conf}"
-LOG="/tmp/ocws-autorun.log"
+LOG="${XDG_RUNTIME_DIR:-$HOME/.cache}/ocws-autorun.log"
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
 

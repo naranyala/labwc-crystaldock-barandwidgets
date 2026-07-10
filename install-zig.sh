@@ -13,11 +13,12 @@ INSTALL_DIR="${HOME}/.local"
 BIN_DIR="${INSTALL_DIR}/bin"
 
 echo "==> Downloading Zig ${ZIG_VERSION}..."
-curl -L --progress-bar "${ZIG_URL}" -o "/tmp/${ZIG_TARBALL}"
+TMPFILE=$(mktemp "/tmp/${ZIG_TARBALL%.tar.xz}-XXXXXX.tar.xz")
+curl -L --progress-bar "${ZIG_URL}" -o "$TMPFILE"
 
 echo "==> Extracting to ${INSTALL_DIR}..."
 mkdir -p "${INSTALL_DIR}"
-tar -xf "/tmp/${ZIG_TARBALL}" -C "${INSTALL_DIR}"
+tar -xf "$TMPFILE" -C "${INSTALL_DIR}"
 
 # Remove old installation if exists
 rm -rf "${INSTALL_DIR}/zig"
@@ -28,7 +29,7 @@ mkdir -p "${BIN_DIR}"
 ln -sf "../zig/zig" "${BIN_DIR}/zig"
 
 # Cleanup
-rm -f "/tmp/${ZIG_TARBALL}"
+rm -f "$TMPFILE"
 
 echo ""
 echo "✓ Zig ${ZIG_VERSION} successfully installed to ${BIN_DIR}/zig!"

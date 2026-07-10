@@ -124,6 +124,7 @@ fi
 section "Files to Restore"
 
 RESTORE_COUNT=0
+for dir in labwc scripts dotfiles; do
   if [ -d "$EXTRACTED/$dir" ]; then
     for file in "$EXTRACTED/$dir"/*; do
       if [ -f "$file" ]; then
@@ -166,6 +167,7 @@ fi
 section "Restoring"
 
 RESTORED=0
+for dir in labwc scripts dotfiles; do
   if [ -d "$EXTRACTED/$dir" ]; then
     for file in "$EXTRACTED/$dir"/*; do
       if [ -f "$file" ]; then

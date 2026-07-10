@@ -1,11 +1,11 @@
 #!/bin/bash
 # Simple calculator using rofi and bc
+set -euo pipefail
 
-res=$(rofi -dmenu -p "Calc: " -l 0 </dev/null)
+res=$(rofi -dmenu -p "Calc: " -l 0 </dev/null) || true
 
 if [ -n "$res" ]; then
-    ans=$(echo "$res" | bc -l 2>&1)
-    if [ $? -eq 0 ]; then
+    if ans=$(echo "$res" | bc -l 2>&1); then
         echo "$ans" | wl-copy
         notify-send "Calculator" "$res = $ans\n\n(Copied to clipboard)" -i "accessories-calculator"
     else

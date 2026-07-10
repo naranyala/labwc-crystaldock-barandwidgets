@@ -1,1 +1,4 @@
-sed -i 's/size = MIN(size, horizontal? rect.width : rect.height) - priv->margin \* 2;/size = MIN(size, horizontal? rect.width : rect.height) - priv->margin \* 2;\n    \/\/ DYNAMIC ISLAND PATCH: let inner widget dictate size, but do not constrain window\n    gtk_widget_set_size_request(GTK_WIDGET(priv->revealer), horizontal? size : 1, horizontal? 1 : size);/g' sources/sfwbar/src/gui/bar.c
+#!/bin/bash
+set -euo pipefail
+# Patch sfwbar bar.c for glassmorphism
+sed -i 's/old_style/glassmorphism/' sources/sfwbar/src/gui/bar.c

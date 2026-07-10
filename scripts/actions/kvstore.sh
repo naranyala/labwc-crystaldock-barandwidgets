@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # kvstore.sh — Persistent key-value store for OCWS
 # Rewritten to use ocws-kv C binary for core operations.
 

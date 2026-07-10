@@ -7,8 +7,6 @@ set -euo pipefail
 # These are the base fonts referenced by GTK3/GTK4/Qt configs.
 #
 
-set -euo pipefail
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FONTS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/fonts"
 
@@ -121,8 +119,8 @@ else
   mkdir -p "$INTER_DIR"
 
   INTER_URL="https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip"
-  INTER_ZIP="/tmp/inter-font.zip"
-  download_font "Inter" "$INTER_URL" "/tmp"
+  INTER_ZIP=$(mktemp /tmp/inter-font-XXXXXX.zip)
+  download_font "Inter" "$INTER_URL" "$(dirname "$INTER_ZIP")"
   extract_font "$INTER_ZIP" "$INTER_DIR"
   rm -f "$INTER_ZIP"
   pass "Inter installed"

@@ -2,7 +2,7 @@
 # ocws-check-requirements.sh — Pre-install requirements checker
 # Shows users exactly what they need before running install.sh
 
-set -uo pipefail
+set -euo pipefail
 
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'

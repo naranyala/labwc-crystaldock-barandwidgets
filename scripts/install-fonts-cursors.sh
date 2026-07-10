@@ -10,17 +10,19 @@ mkdir -p ~/.local/share/icons
 
 # 1. JetBrainsMono Nerd Font
 echo "--> Downloading JetBrainsMono Nerd Font..."
-wget -qO /tmp/JetBrainsMono.tar.xz "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
-tar -xJ -f /tmp/JetBrainsMono.tar.xz -C ~/.local/share/fonts/
-rm /tmp/JetBrainsMono.tar.xz
+TMPFILE=$(mktemp /tmp/jetbrains-XXXXXX.tar.xz)
+wget -qO "$TMPFILE" "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz"
+tar -xJ -f "$TMPFILE" -C ~/.local/share/fonts/
+rm "$TMPFILE"
 echo "--> Rebuilding font cache..."
 fc-cache -fv >/dev/null 2>&1
 
 # 2. Bibata-Modern-Ice Cursor Theme
 echo "--> Downloading Bibata-Modern-Ice cursor theme..."
-wget -qO /tmp/Bibata.tar.xz "https://github.com/ful1e5/Bibata_Cursor/releases/latest/download/Bibata-Modern-Ice.tar.xz"
-tar -xJ -f /tmp/Bibata.tar.xz -C ~/.local/share/icons/
-rm /tmp/Bibata.tar.xz
+TMPFILE=$(mktemp /tmp/bibata-XXXXXX.tar.xz)
+wget -qO "$TMPFILE" "https://github.com/ful1e5/Bibata_Cursor/releases/latest/download/Bibata-Modern-Ice.tar.xz"
+tar -xJ -f "$TMPFILE" -C ~/.local/share/icons/
+rm "$TMPFILE"
 
 echo ""
 echo "Successfully installed!"

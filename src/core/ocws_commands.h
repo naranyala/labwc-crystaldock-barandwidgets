@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OCWS_COMMANDS_H
+#define OCWS_COMMANDS_H
 
 // CLI entry points
 int cli_brightness_main(int argc, char **argv);
@@ -32,3 +33,5 @@ int gui_settings_main(int argc, char **argv);
 int gui_theme_center_main(int argc, char **argv);
 int gui_welcome_main(int argc, char **argv);
 int gui_workspace_mgr_main(int argc, char **argv);
+
+#endif

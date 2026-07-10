@@ -166,6 +166,34 @@ esac
 
 echo -e "  Neovim config: ${CYAN}${USE_NVIM}${NC}"
 
+echo -e "\n  Install Antigravity CLI + codebase-memory-mcp MCP?"
+echo -e "    Antigravity CLI (Google AI coding agent) with codebase-memory-mcp"
+echo -e "    pre-configured as the default MCP server for code intelligence."
+echo -e "    Your existing antigravity config is backed up before changes."
+echo -n "  Enter choice [y/N] (default: N): "
+read -r mcp_choice
+
+case "${mcp_choice:-N}" in
+    [Yy]) USE_MCP=true ;;
+    *)    USE_MCP=false ;;
+esac
+
+echo -e "  Antigravity CLI + MCP: ${CYAN}${USE_MCP}${NC}"
+
+echo -e "\n  Install OpenCode CLI + codebase-memory-mcp MCP?"
+echo -e "    OpenCode (open source AI coding agent) with codebase-memory-mcp"
+echo -e "    pre-configured as the default MCP server for code intelligence."
+echo -e "    https://opencode.ai — free models included."
+echo -n "  Enter choice [y/N] (default: N): "
+read -r opencode_choice
+
+case "${opencode_choice:-N}" in
+    [Yy]) USE_OPENCODE=true ;;
+    *)    USE_OPENCODE=false ;;
+esac
+
+echo -e "  OpenCode CLI + MCP: ${CYAN}${USE_OPENCODE}${NC}"
+
 # -------------------------------------------------------------------
 # Stage 3 — Mode-Aware Dependency Resolution
 # -------------------------------------------------------------------
@@ -252,6 +280,91 @@ case "${dep_choice:-1}" in
 esac
 
 # -------------------------------------------------------------------
+# MCP Setup: Antigravity CLI + codebase-memory-mcp
+# -------------------------------------------------------------------
+install_mcp_tools() {
+    info "Installing Antigravity CLI..."
+    if command -v agy &>/dev/null; then
+        pass "Antigravity CLI already installed ($(agy --version 2>/dev/null || true))"
+    else
+        bash -c "$(curl -fsSL https://antigravity.google/cli/install.sh)" 2>&1 || warn "Antigravity CLI install had issues"
+        if command -v agy &>/dev/null; then
+            pass "Antigravity CLI installed"
+        fi
+    fi
+
+    info "Installing codebase-memory-mcp..."
+    if command -v codebase-memory-mcp &>/dev/null; then
+        pass "codebase-memory-mcp already installed ($(codebase-memory-mcp --version 2>/dev/null || true))"
+    else
+        bash -c "$(curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh)" 2>&1 || warn "codebase-memory-mcp install had issues"
+        if command -v codebase-memory-mcp &>/dev/null; then
+            pass "codebase-memory-mcp installed"
+        fi
+    fi
+
+    local agy_config="$HOME/.gemini/config/mcp_config.json"
+    if [ -f "$agy_config" ] && grep -q codebase-memory-mcp "$agy_config" 2>/dev/null; then
+        pass "codebase-memory-mcp pre-configured for Antigravity CLI"
+    else
+        warn "codebase-memory-mcp not auto-detected for Antigravity. Run: codebase-memory-mcp install"
+    fi
+}
+
+install_opencode_mcp() {
+    info "Installing OpenCode CLI..."
+    if command -v opencode &>/dev/null; then
+        pass "OpenCode CLI already installed ($(opencode --version 2>/dev/null || true))"
+    else
+        bash -c "$(curl -fsSL https://opencode.ai/install)" 2>&1 || warn "OpenCode CLI install had issues"
+        if command -v opencode &>/dev/null; then
+            pass "OpenCode CLI installed"
+        fi
+    fi
+
+    info "Installing codebase-memory-mcp..."
+    if command -v codebase-memory-mcp &>/dev/null; then
+        pass "codebase-memory-mcp already installed ($(codebase-memory-mcp --version 2>/dev/null || true))"
+    else
+        bash -c "$(curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh)" 2>&1 || warn "codebase-memory-mcp install had issues"
+        if command -v codebase-memory-mcp &>/dev/null; then
+            pass "codebase-memory-mcp installed"
+        fi
+    fi
+
+    local opencode_config="${XDG_CONFIG_HOME:-$HOME/.config}/opencode/opencode.json"
+    if [ -f "$opencode_config" ] && grep -q codebase-memory-mcp "$opencode_config" 2>/dev/null; then
+        pass "codebase-memory-mcp pre-configured for OpenCode CLI"
+    else
+        warn "codebase-memory-mcp not auto-detected for OpenCode. Run: codebase-memory-mcp install"
+    fi
+}
+
+if [ "$USE_MCP" = true ]; then
+    case "${dep_choice:-1}" in
+        1) install_mcp_tools ;;
+        *)
+            echo -e "\n${YELLOW}⚠${NC} Skipping MCP tools install (configs-only mode)."
+            echo "  To install later:"
+            echo "    curl -fsSL https://antigravity.google/cli/install.sh | bash"
+            echo "    curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash"
+            ;;
+    esac
+fi
+
+if [ "$USE_OPENCODE" = true ]; then
+    case "${dep_choice:-1}" in
+        1) install_opencode_mcp ;;
+        *)
+            echo -e "\n${YELLOW}⚠${NC} Skipping OpenCode tools install (configs-only mode)."
+            echo "  To install later:"
+            echo "    curl -fsSL https://opencode.ai/install | bash"
+            echo "    curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh | bash"
+            ;;
+    esac
+fi
+
+# -------------------------------------------------------------------
 # Deploy Configurations
 # -------------------------------------------------------------------
 
@@ -263,6 +376,8 @@ echo -e "  Terminal: ${CYAN}${TERMINAL_DESC}${NC}"
 echo -e "  Tmux config: ${CYAN}${USE_TMUX}${NC}"
 echo -e "  Affected directories: labwc, ocws, foot, gtk-3.0, gtk-4.0, mako, qt6ct"
 echo -e "  Neovim config: ${CYAN}${USE_NVIM}${NC}"
+echo -e "  Antigravity CLI + MCP: ${CYAN}${USE_MCP}${NC}"
+echo -e "  OpenCode CLI + MCP: ${CYAN}${USE_OPENCODE}${NC}"
 
 if [[ "$LAUNCHER" == "rofi" ]]; then
     echo -e "  ${CYAN}  rofi${NC}: ~/.config/rofi/"

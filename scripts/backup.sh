@@ -73,12 +73,13 @@ backup_file() {
   if [ "$MODE" = "incremental" ]; then
     # Check if file changed since last backup
     local last_backup=""
+    for dir in "$BACKUP_BASE"/*/; do
       if [ -f "$dir/$filename" ]; then
         last_backup="$dir/$filename"
         break
       fi
     done
-    
+
     if [ -n "$last_backup" ] && [ -f "$last_backup" ]; then
       if cmp -s "$src" "$last_backup" 2>/dev/null; then
         info "  Skip (unchanged): $filename"
@@ -98,8 +99,6 @@ section "labwc config"
 for cfg in rc.xml autostart environment menu.xml themerc-override; do
   backup_file "$CONFIG_DIR/$cfg" "$BACKUP_DIR/labwc"
 done
-
-fi
 
 # --- Backup scripts ---
 section "scripts"

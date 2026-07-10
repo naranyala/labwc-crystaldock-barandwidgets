@@ -5,7 +5,7 @@
 set -euo pipefail
 
 CFG="${AUTORUN_CONF:-$HOME/.config/labwc/autorun.conf}"
-LOG="/tmp/ocws-autorun.log"
+LOG="${XDG_RUNTIME_DIR:-$HOME/.cache}/ocws-autorun.log"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'

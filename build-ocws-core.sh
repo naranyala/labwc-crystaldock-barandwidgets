@@ -37,9 +37,9 @@ done
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
-BUILD_DIR="/tmp/ocws-build"
+BUILD_DIR=$(mktemp -d /tmp/ocws-build-XXXXXX)
+trap 'rm -rf "$BUILD_DIR"' EXIT
 
-mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
 build_engine() {
