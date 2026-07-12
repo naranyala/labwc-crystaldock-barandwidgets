@@ -16,7 +16,6 @@ dotfiles/
 ├── ocws/                   # OCWS shell configuration
 │   ├── ocws.config         # Main bar layout (dual-bar: top + bottom)
 │   ├── ocws.css            # Generated glassmorphic panel CSS
-│   ├── theme.css           # Static structural GTK CSS
 │   ├── ocws-daemon.sh      # Background event bus listener
 │   ├── plugins.config      # Auto-generated plugin includes
 │   ├── plugins/            # Drop-in widget extensions

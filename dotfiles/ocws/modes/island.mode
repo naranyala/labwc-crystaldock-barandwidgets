@@ -1,0 +1,24 @@
+#Api2
+# island.mode — Dynamic island bar (requires patched sfwbar)
+# Launch: sfwbar -f modes/island.mode
+# Relies on the C-patched sfwbar for floating island geometry
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Dynamic Island Bar ---
+bar "topbar:top" {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+
+  # The C patch natively handles making the GTK window full-span and transparent.
+  # halign = "center" applies to the inner #ebox!
+  halign = "center"
+  valign = "start"
+
+  # Dynamic Island Content
+  widget "../widgets/core/workspaces.widget"
+  widget "../widgets/media/media-player.widget"
+  widget "../widgets/core/clock.widget"
+}

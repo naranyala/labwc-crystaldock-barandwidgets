@@ -25,9 +25,9 @@ errors=0
 warnings=0
 info_count=0
 
-pass() { echo -e "  ${GREEN}✓${NC} $1"; ((info_count++)); }
-fail() { echo -e "  ${RED}✗${NC} $1"; ((errors++)); }
-warn() { echo -e "  ${YELLOW}⚠${NC} $1"; ((warnings++)); }
+pass() { echo -e "  ${GREEN}✓${NC} $1"; info_count=$((info_count+1)); }
+fail() { echo -e "  ${RED}✗${NC} $1"; errors=$((errors+1)); }
+warn() { echo -e "  ${YELLOW}⚠${NC} $1"; warnings=$((warnings+1)); }
 info() { echo -e "  ${CYAN}ℹ${NC} $1"; }
 
 echo "=== SFWBar Config Validator ==="
@@ -40,7 +40,7 @@ echo ""
 # ============================================================
 echo "--- Config Files ---"
 config_files=()
-for f in "$OCWS_DIR"/*.config "$OCWS_DIR"/*.mode; do
+for f in "$OCWS_DIR"/*.config "$OCWS_DIR"/*.mode "$OCWS_DIR"/modes/*.mode "$OCWS_DIR"/bars/*.config; do
     [[ -f "$f" ]] || continue
     # Skip non-SFWBar configs (env.config, user.config, plugins.config)
     fname=$(basename "$f")
@@ -73,9 +73,11 @@ for config in "${config_files[@]}"; do
     fi
     
     # 2b. Check brace matching
-    open_braces=$(grep -c "{" "$config" 2>/dev/null || echo 0)
-    close_braces=$(grep -c "}" "$config" 2>/dev/null || echo 0)
-    if [[ $open_braces -eq $close_braces ]]; then
+    open_braces=$(grep -c "{" "$config" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    open_braces=${open_braces:-0}
+    close_braces=$(grep -c "}" "$config" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    close_braces=${close_braces:-0}
+    if [[ "$open_braces" -eq "$close_braces" ]]; then
         pass "Braces balanced ($open_braces pairs)"
     else
         fail "Brace mismatch: $open_braces open, $close_braces close"
@@ -97,27 +99,44 @@ for config in "${config_files[@]}"; do
     fi
     
     # 2e. Check include() references
+    # sfwbar resolves includes relative to the ocws/ base directory,
+    # not relative to the including file. Try both base and config dir.
+    config_dir=$(dirname "$config")
     while IFS= read -r line; do
         if [[ "$line" =~ include\(\"([^\"]+)\"\) ]]; then
             inc_file="${BASH_REMATCH[1]}"
-            # Resolve path relative to config dir
+            # Try resolving relative to the ocws/ base directory first
             if [[ "$inc_file" == /* ]]; then
                 inc_path="$inc_file"
             else
                 inc_path="$OCWS_DIR/$inc_file"
             fi
-            
+            inc_path=$(realpath -m "$inc_path" 2>/dev/null || echo "$inc_path")
+
             if [[ -f "$inc_path" ]]; then
                 pass "Include found: $inc_file"
             else
-                fail "Include not found: $inc_file"
+                # Fallback: resolve relative to the config file's directory
+                if [[ "$inc_file" == /* ]]; then
+                    inc_path="$inc_file"
+                else
+                    inc_path="$config_dir/$inc_file"
+                fi
+                inc_path=$(realpath -m "$inc_path" 2>/dev/null || echo "$inc_path")
+
+                if [[ -f "$inc_path" ]]; then
+                    pass "Include found: $inc_file"
+                else
+                    fail "Include not found: $inc_file (resolved: $inc_path)"
+                fi
             fi
         fi
     done < "$config"
     
     # 2f. Check bar definitions
-    bar_count=$(grep -c "^bar " "$config" 2>/dev/null || echo 0)
-    if [[ $bar_count -gt 0 ]]; then
+    bar_count=$(grep -c "^bar " "$config" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    bar_count=${bar_count:-0}
+    if [[ "$bar_count" -gt 0 ]]; then
         info "Defines $bar_count bar(s)"
         
         # Check for duplicate bar names
@@ -136,8 +155,9 @@ for config in "${config_files[@]}"; do
     fi
     
     # 2g. Check for widget references
-    widget_refs=$(grep -c 'widget "' "$config" 2>/dev/null || echo 0)
-    if [[ $widget_refs -gt 0 ]]; then
+    widget_refs=$(grep -c 'widget "' "$config" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    widget_refs=${widget_refs:-0}
+    if [[ "$widget_refs" -gt 0 ]]; then
         info "References $widget_refs widget(s)"
     fi
     
@@ -186,7 +206,8 @@ echo ""
 echo "--- CSS Token Usage ---"
 token_usage=0
 for config in "${config_files[@]}"; do
-    count=$(grep -c "@ocws_" "$config" 2>/dev/null || echo 0)
+    count=$(grep -c "@ocws_" "$config" 2>/dev/null | tr -d '[:space:]' || echo 0)
+    count=${count:-0}
     token_usage=$((token_usage + count))
 done
 

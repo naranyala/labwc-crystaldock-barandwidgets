@@ -1,0 +1,78 @@
+#!/bin/bash
+# panel-mode-cycle — Cycle through all available shell/panel modes
+#
+# Reads current mode from ~/.config/ocws/mode, advances to the next
+# in the defined order, and calls toggle-shell.
+#
+# Keybind: Super+p (defined in rc.xml)
+
+set -euo pipefail
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+# Ordered list of all modes — cycles through in this exact sequence.
+# Grouped: sfwbar-only modes first, then lxqt-panel modes.
+MODES=(
+    doublepanel
+    crystaldock
+    minimal
+    dms
+    noctalia
+    tworow
+    lxqt-classic
+    lxqt-minimal
+    lxqt-standalone
+    lxqt-dual-lxqt
+    lxqt-vertical
+    lxqt-bottom
+)
+
+# Human-readable names for the notification
+declare -A NAMES=(
+    [doublepanel]="OCWS Double Panel"
+    [crystaldock]="Crystal Dock"
+    [minimal]="OCWS Minimal"
+    [dms]="DankMaterialShell"
+    [noctalia]="Noctalia"
+    [tworow]="LXQt Tworow"
+    [lxqt-classic]="LXQt Classic"
+    [lxqt-minimal]="LXQt Minimal"
+    [lxqt-standalone]="LXQt Standalone"
+    [lxqt-dual-lxqt]="LXQt Dual Panels"
+    [lxqt-vertical]="LXQt Vertical"
+    [lxqt-bottom]="LXQt Bottom"
+)
+
+CFG="$HOME/.config/ocws/mode"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo crystaldock)"
+
+# Find current index
+IDX=-1
+for i in "${!MODES[@]}"; do
+    if [ "${MODES[$i]}" = "$CURRENT" ]; then
+        IDX=$i
+        break
+    fi
+done
+
+# Advance to next (wrap around)
+if [ "$IDX" -ge 0 ]; then
+    NEXT_IDX=$(( (IDX + 1) % ${#MODES[@]} ))
+else
+    NEXT_IDX=0
+fi
+
+NEXT="${MODES[$NEXT_IDX]}"
+NAME="${NAMES[$NEXT]:-$NEXT}"
+
+echo -e "${CYAN}Panel mode:${NC} ${NAMES[$CURRENT]:-$CURRENT} → ${GREEN}${NAME}${NC}"
+
+# Notify via desktop notification if available
+if command -v notify-send >/dev/null 2>&1; then
+    notify-send -t 2000 -a "OCWS" "Shell Mode" "$NAME"
+fi
+
+# Switch
+toggle-shell "$NEXT"

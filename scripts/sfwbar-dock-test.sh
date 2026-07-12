@@ -86,7 +86,7 @@ start_sfwbar() {
     info "Starting sfwbar in $mode mode..."
     info "Config: $config_file"
     
-    sfwbar -c "$config_file" &
+    sfwbar -f "$config_file" &
     echo $! > "$PID_FILE"
     pass "sfwbar started (PID: $!)"
     

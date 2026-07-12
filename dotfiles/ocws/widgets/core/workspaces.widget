@@ -1,58 +1,14 @@
 #Api2
 
-# Workspaces widget — text-style workspace switcher
-Private {
-  export button "workspaces" {
-    style = "text_widget"
-    tooltip = "Workspaces (1-9)"
-    action = PopUp("WsPopup")
-
-    label { value = "  Workspace" }
-  }
-
-  PopUp("WsPopup") {
-    style = "detail_popup"
-    grid {
-      style = "detail_grid"
-      label {
-        value = "Workspaces"
-        style = "detail_header"
-      }
-      pager {
-        style = "pager"
-        rows = 1
-        pins = "1","2","3","4","5","6","7","8","9"
-        preview = true
-        primary_axis = rows
-        action[Drag] = WorkspaceActivate()
-      }
-      label {
-        value = "Click or scroll to switch"
-        style = "detail_hint"
-      }
-    }
-  }
+# Workspaces widget — inline dot pager on the bar
+# Active dot is a filled pill (accent), occupied dots brighter,
+# empty dots dim. Click a dot to switch, scroll to cycle.
+export pager "workspaces" {
+  style = "pager"
+  pins = "1","2","3","4"
+  preview = false
+  action[ScrollUp] = WorkspaceUp()
+  action[ScrollDown] = WorkspaceDown()
 }
 
 #CSS
-
-grid#ws_grid {
-  -GtkWidget-direction: right;
-  padding: 4px;
-}
-
-button.ws_button {
-  min-width: 28px;
-  min-height: 28px;
-  border-radius: 6px;
-  padding: 4px;
-  margin: 2px;
-  background-color: alpha(@surface2, 0.4);
-  color: alpha(@theme_text_color, 0.7);
-  font-size: 11px;
-}
-
-button.ws_button:hover {
-  background-color: rgba(69, 71, 90, 0.6);
-  color: @theme_text_color;
-}

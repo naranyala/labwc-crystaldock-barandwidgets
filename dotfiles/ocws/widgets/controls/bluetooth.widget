@@ -1,6 +1,10 @@
 #Api2
-
 # Bluetooth text widget — shows BT status
+
+Exec("bluetoothctl show | grep Powered") {
+  XBtState = Grab(First)
+}
+
 export button "bluetooth" {
   interval = 3000
   style = "text_widget"

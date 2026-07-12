@@ -1,0 +1,4 @@
+#!/bin/bash
+# A rofi-based GUI prompt for sudo -A
+prompt="${1:-Password: }"
+rofi -dmenu -password -p "$prompt" -lines 0

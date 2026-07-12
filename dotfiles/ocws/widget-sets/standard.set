@@ -1,6 +1,6 @@
-  widget "clock"
-  widget "volume-text"
-  widget "brightness-text"
-  widget "battery-text"
+  widget "widgets/core/clock.widget"
+  widget "widgets/controls/volume-text.widget"
+  widget "widgets/controls/brightness-text.widget"
+  widget "widgets/system/battery-text.widget"
   include("widgets/core/tray.widget")
-  widget "ocws-control-center"
+  widget "widgets/popups/ocws-control-center.widget"

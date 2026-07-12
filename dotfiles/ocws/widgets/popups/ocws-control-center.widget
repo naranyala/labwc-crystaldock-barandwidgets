@@ -4,21 +4,14 @@
 # OCWS Control Center Widget — text-style status display
 # -------------------------------------------------------------------
 
-# Data Sources
-scanner {
-  step = 2000
-  exec("/bin/sh -c 'wpctl get-volume @DEFAULT_SINK@ 2>/dev/null'") {
-    XVolRaw = Grab(First)
-    XVolLevel = Val(RegEx("Volume: ([0-9.]+)", XVolRaw)) * 100
-    XVolMuted = RegEx("MUTED", XVolRaw)
-  }
-}
+# Volume/brightness are pushed by ocws-daemon.sh via XVolLevel/XVolMuted/
+# XBrightness. Network/bluetooth/battery come from ocws-sysmon.source.
+# All CSS is in ocws.css — no widget-specific overrides needed.
 
 # -------------------------------------------------------------------
 # The Text Widget (On the Bar)
 # -------------------------------------------------------------------
 export button "ocws-control-center" {
-  interval = 3000
   style = "text_widget"
   tooltip = "Control Center"
   action = PopUp("OCWSControlCenter")
@@ -48,7 +41,7 @@ PopUp("OCWSControlCenter") {
     # Volume Row
     grid {
       style = "cc_row"
-      label { value = If(XVolMuted, "󰝟", "󰕾"); style = "cc_icon" }
+      label { value = If(XVolMuted = 1, "󰝟", "󰕾"); style = "cc_icon" }
       scale {
         style = "detail_slider"
         value = XVolLevel
@@ -96,67 +89,3 @@ PopUp("OCWSControlCenter") {
 }
 
 #CSS
-/* Control Center Specific CSS */
-grid.control_center_grid {
-  margin: 5px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background-color: rgba(30, 30, 46, 0.85);
-  -GtkWidget-direction: bottom;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-  min-width: 320px;
-}
-
-grid.cc_row {
-  -GtkWidget-direction: right;
-  margin: 10px 0px;
-}
-
-label.cc_icon {
-  font-size: 18px;
-  min-width: 32px;
-  color: @theme_text_color;
-}
-
-scale.detail_slider {
-  -GtkWidget-hexpand: true;
-  margin: 0px 8px;
-}
-
-grid.cc_toggles {
-  -GtkWidget-direction: right;
-  -GtkWidget-homogeneous: true;
-  margin-top: 12px;
-}
-
-button.cc_toggle {
-  background-color: alpha(@surface2, 0.4);
-  border-radius: 12px;
-  padding: 12px;
-  margin: 4px;
-  font-weight: bold;
-}
-button.cc_toggle:hover { background-color: rgba(69, 71, 90, 0.7); }
-
-button.cc_toggle_active {
-  background-color: alpha(@accent, 0.25);
-  color: @accent;
-  border-radius: 12px;
-  padding: 12px;
-  margin: 4px;
-  font-weight: bold;
-  border: 1px solid rgba(137, 180, 250, 0.3);
-}
-button.cc_toggle_active:hover { background-color: alpha(@accent, 0.4); }
-
-button.cc_toggle_active_red {
-  background-color: rgba(243, 139, 168, 0.25);
-  color: @urgent;
-  border-radius: 12px;
-  padding: 12px;
-  margin: 4px;
-  font-weight: bold;
-  border: 1px solid rgba(243, 139, 168, 0.3);
-}
-button.cc_toggle_active_red:hover { background-color: rgba(243, 139, 168, 0.4); }

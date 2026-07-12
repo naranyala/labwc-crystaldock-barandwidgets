@@ -4,6 +4,9 @@
  *
  * All widgets, bars, and popups should use these @define-color tokens
  * instead of hardcoded hex/rgba values.
+ *
+ * For alpha transparency, use alpha(@token, opacity) at the call site.
+ * GTK CSS does not support rgba() with hex — use alpha() instead.
  * ============================================================ */
 
 /* === Base Colors === */
@@ -51,18 +54,6 @@
 @define-color ocws_info #89dceb;
 @define-color ocws_muted @theme_text_color;
 
-/* === Derived / Alpha Variants === */
-@define-color ocws_surface0_alpha50 #313244;
-@define-color ocws_surface1_alpha30 @theme_bg_color;
-@define-color ocws_surface1_alpha50 @theme_bg_color;
-@define-color ocws_surface2_alpha30 #45475a;
-@define-color ocws_bg_alpha85 @theme_bg_color;
-@define-color ocws_bg_alpha92 @theme_bg_color;
-@define-color ocws_bg_alpha95 @theme_bg_color;
-@define-color ocws_fg_alpha30 @theme_text_color;
-@define-color ocws_fg_alpha50 @theme_text_color;
-@define-color ocws_fg_alpha60 @theme_text_color;
-@define-color ocws_accent_alpha15 @accent;
-@define-color ocws_accent_alpha20 @accent;
-@define-color ocws_urgent_alpha15 @urgent;
-@define-color ocws_urgent_alpha20 @urgent;
+/* === Shadow / Utility Colors === */
+@define-color ocws_shadow #000000;
+@define-color ocws_separator #a6adc8;

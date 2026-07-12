@@ -1,0 +1,10 @@
+#Api2
+# desktop.mode — Desktop widgets only, no status bars
+# Launch: sfwbar -f modes/desktop.mode
+# Shows floating clock, weather, sysmon on the desktop background
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Desktop Layer ---
+include("../bars/desktop.config")

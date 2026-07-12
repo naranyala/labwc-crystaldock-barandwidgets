@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 # dotfiles/wallpaper
+#
+# Wallpaper manager with persistence.
+# Remembers the last wallpaper across reboots via ~/.config/ocws/current-wallpaper.
 
 WALLPAPER_DIR="${HOME}/Pictures/wallpapers"
+WALLPAPER_STATE="${HOME}/.config/ocws/current-wallpaper"
+
 # Look for sources file relative to script first (dev mode), then fall back to installed location
 _script_dir="$(cd "$(dirname "$0")" && pwd)"
 if [[ -f "$_script_dir/wallpaper-sources.txt" ]]; then
@@ -13,6 +18,12 @@ else
 fi
 
 # --- Internal Functions ---
+
+save_wallpaper_path() {
+    local img="$1"
+    mkdir -p "$(dirname "$WALLPAPER_STATE")"
+    echo "$img" > "$WALLPAPER_STATE"
+}
 
 sync_wallpapers() {
     echo "Syncing wallpapers..."
@@ -117,6 +128,9 @@ set_wallpaper() {
         return 1
     fi
 
+    # Save for persistence across reboots
+    save_wallpaper_path "$img"
+
     # Trigger dynamic adaptive color palette based on wallpaper (if enabled)
     local project_dir
     project_dir="$(cd "$_script_dir/.." && pwd)"
@@ -184,6 +198,41 @@ case "${1:-}" in
     random)
         set_wallpaper
         ;;
+    last)
+        # Restore the last wallpaper from state file
+        if [[ -f "$WALLPAPER_STATE" ]]; then
+            saved="$(cat "$WALLPAPER_STATE")"
+            if [[ -f "$saved" ]]; then
+                echo "Restoring last wallpaper: $saved"
+                set_wallpaper "$saved"
+            else
+                echo "Saved wallpaper not found: $saved"
+                echo "Picking random..."
+                set_wallpaper
+            fi
+        else
+            echo "No saved wallpaper found. Picking random..."
+            set_wallpaper
+        fi
+        ;;
+    auto)
+        # Auto: sync if missing, then restore last or pick random
+        count=$(find "$WALLPAPER_DIR" -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" \) 2>/dev/null | wc -l)
+        if [[ "$count" -lt 1 ]]; then
+            echo "No wallpapers found — downloading..."
+            sync_wallpapers
+        fi
+        # Prefer last wallpaper if it exists
+        if [[ -f "$WALLPAPER_STATE" ]]; then
+            saved="$(cat "$WALLPAPER_STATE")"
+            if [[ -f "$saved" ]]; then
+                echo "Restoring last wallpaper: $saved"
+                set_wallpaper "$saved"
+                exit 0
+            fi
+        fi
+        set_wallpaper
+        ;;
     daemon)
         interval="${2:-3600}"
         echo "Starting wallpaper daemon (interval: ${interval}s)..."
@@ -192,8 +241,25 @@ case "${1:-}" in
             sleep "$interval"
         done
         ;;
+    path)
+        # Show the current wallpaper path
+        if [[ -f "$WALLPAPER_STATE" ]]; then
+            cat "$WALLPAPER_STATE"
+        else
+            echo "No wallpaper set yet."
+        fi
+        ;;
     *)
-        echo "Usage: wallpaper {sync|set [path]|random|daemon [seconds]}"
+        echo "Usage: wallpaper {sync|set [path]|random|last|auto|path|daemon [seconds]}"
+        echo ""
+        echo "Commands:"
+        echo "  sync           Download wallpapers from sources"
+        echo "  set [path]     Set a specific wallpaper (random if no path)"
+        echo "  random         Pick and set a random wallpaper"
+        echo "  last           Restore the last wallpaper"
+        echo "  auto           Sync if empty, then restore last or random"
+        echo "  path           Show current wallpaper path"
+        echo "  daemon [sec]   Rotate wallpaper every N seconds (default: 3600)"
         exit 1
         ;;
 esac

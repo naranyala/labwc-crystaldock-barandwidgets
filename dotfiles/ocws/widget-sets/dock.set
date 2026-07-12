@@ -1,0 +1,4 @@
+# Dock widget set — pinned app icons in bar
+# Include this set to add the inline dock to a bar
+
+widget "widgets/core/dock.widget"

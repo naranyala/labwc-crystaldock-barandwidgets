@@ -1,6 +1,6 @@
 #Api2
-
 # Show Desktop widget — toggle desktop view (minimize all windows)
+# All CSS is in ocws.css — no widget-specific overrides needed.
 
 export button "showdesktop" {
   style = "module"
@@ -12,18 +12,3 @@ export button "showdesktop" {
 }
 
 #CSS
-
-button#showdesktop {
-  padding: 4px 8px;
-  margin: 2px;
-  border-radius: 6px;
-  background-color: transparent;
-}
-
-button#showdesktop:hover {
-  background-color: alpha(@surface2, 0.5);
-}
-
-button#showdesktop:checked {
-  background-color: rgba(137, 180, 250, 0.2);
-}

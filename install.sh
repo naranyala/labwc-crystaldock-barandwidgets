@@ -67,132 +67,62 @@ check_requirements
 
 info "OCWS Shell Selection"
 
-cat << 'MENU'
+echo -e "\n  ${CYAN}Shell:${NC}"
+echo -e "    1)  OCWS Double Panel     7)  LXQt Classic"
+echo -e "    2)  Crystal Dock           8)  LXQt Minimal"
+echo -e "    3)  DankMaterialShell      9)  LXQt Standalone"
+echo -e "    4)  Noctalia Shell        10)  LXQt Dual Panels"
+echo -e "    5)  OCWS Minimal          11)  LXQt Vertical"
+echo -e "    6)  LXQt Tworow           12)  LXQt Bottom"
 
-  Choose your desktop shell:
-
-    1)  labwc + double-panel sfwbar
-        ──────────────────────────────
-        Dual-panel layout: top statusbar + bottom dock.
-        Full OCWS shell — the standard experience.
-        Statusbar + Dock via sfwbar.
-
-    2)  labwc + sfwbar statusbar + crystal-dock
-        ────────────────────────────────────────
-        Single sfwbar statusbar on top.
-        Application dock managed by crystal-dock.
-        Classic panel + dock separation.
-
-    3)  labwc + DankMaterialShell
-        ────────────────────────────────────────
-        Material Design-inspired shell by DankShrine.
-        Vertical panel + minimalist layout.
-
-    4)  labwc + Noctalia Shell
-        ────────────────────────────────────────
-        Quiet-by-design shell from the Noctalia project.
-        Minimalist, distraction-free interface.
-
-MENU
-
-echo -n "  Enter choice [1-4] (default: 1): "
+echo -n "  Choice [1-12] (default: 1): "
 read -r mode_choice
 
 case "${mode_choice:-1}" in
-    1) MODE="doublepanel"
-       MODE_DESC="labwc + double-panel sfwbar"
-       ;;
-    2) MODE="crystaldock"
-       MODE_DESC="labwc + sfwbar statusbar + crystal-dock"
-       ;;
-    3) MODE="dms"
-       MODE_DESC="labwc + DankMaterialShell"
-       ;;
-    4) MODE="noctalia"
-       MODE_DESC="labwc + Noctalia Shell"
-       ;;
-    *) MODE="doublepanel"
-       MODE_DESC="labwc + double-panel sfwbar"
-       ;;
+    1)  MODE="doublepanel";      MODE_DESC="OCWS Double Panel" ;;
+    2)  MODE="crystaldock";      MODE_DESC="Crystal Dock" ;;
+    3)  MODE="dms";              MODE_DESC="DankMaterialShell" ;;
+    4)  MODE="noctalia";         MODE_DESC="Noctalia Shell" ;;
+    5)  MODE="minimal";          MODE_DESC="OCWS Minimal" ;;
+    6)  MODE="tworow";           MODE_DESC="LXQt Tworow" ;;
+    7)  MODE="lxqt-classic";     MODE_DESC="LXQt Classic" ;;
+    8)  MODE="lxqt-minimal";     MODE_DESC="LXQt Minimal" ;;
+    9)  MODE="lxqt-standalone";  MODE_DESC="LXQt Standalone" ;;
+    10) MODE="lxqt-dual-lxqt";   MODE_DESC="LXQt Dual Panels" ;;
+    11) MODE="lxqt-vertical";    MODE_DESC="LXQt Vertical" ;;
+    12) MODE="lxqt-bottom";      MODE_DESC="LXQt Bottom" ;;
+    *)  MODE="doublepanel";      MODE_DESC="OCWS Double Panel" ;;
 esac
 
-echo -e "\n  Selected: ${CYAN}${MODE_DESC}${NC}"
+echo -e "  Selected: ${GREEN}${MODE_DESC}${NC}"
 
-echo -e "\n  Choose your default application launcher:"
-echo -e "    1) fuzzel  (minimal, Wayland-native, runs out of the box)"
-echo -e "    2) rofi    (feature-rich, customized theme)"
-echo -n "  Enter choice [1-2] (default: 1): "
+echo -e "\n  ${CYAN}Launcher:${NC}  1) fuzzel (default)  2) rofi"
+echo -n "  Choice [1-2]: "
 read -r launcher_choice
 
 case "${launcher_choice:-1}" in
-    2) LAUNCHER="rofi"
-       LAUNCHER_DESC="rofi"
-       ;;
-    *) LAUNCHER="fuzzel"
-       LAUNCHER_DESC="fuzzel"
-       ;;
+    2) LAUNCHER="rofi" ;;
+    *) LAUNCHER="fuzzel" ;;
 esac
 
-echo -e "  Selected: ${CYAN}${LAUNCHER_DESC}${NC}"
+echo -e "  Terminal: ${GREEN}foot${NC}"
 
-TERMINAL="foot"
-TERMINAL_DESC="foot"
-echo -e "  Selected: ${CYAN}foot${NC}"
+echo -e "\n  ${CYAN}Extras:${NC}"
+echo -n "    Tmux theme? [y/N]: " && read -r tmux_choice
+echo -n "    Neovim config? [y/N]: " && read -r nvim_choice
+echo -n "    Antigravity CLI + MCP? [y/N]: " && read -r mcp_choice
+echo -n "    OpenCode CLI + MCP? [y/N]: " && read -r opencode_choice
 
-echo -e "\n  Use OCWS themed tmux configuration?"
-echo -e "    Replaces your ~/.tmux.conf with a theme-aware config."
-echo -e "    Your existing config will be backed up to dotfiles/tmux/tmux.conf.bak"
-echo -n "  Enter choice [y/N] (default: N): "
-read -r tmux_choice
+USE_TMUX="${tmux_choice:-N}"
+USE_NVIM="${nvim_choice:-N}"
+USE_MCP="${mcp_choice:-N}"
+USE_OPENCODE="${opencode_choice:-N}"
 
-case "${tmux_choice:-N}" in
-    [Yy]) USE_TMUX=true ;;
-    *)    USE_TMUX=false ;;
-esac
-
-echo -e "  Tmux config: ${CYAN}${USE_TMUX}${NC}"
-
-echo -e "\n  Deploy modular Neovim config?"
-echo -e "    Installs ~/.config/nvim/ with lazy.nvim, LSP/Mason, Treesitter,"
-echo -e "    and OCWS theme support. Modular lua/plugins/* for easy swaps."
-echo -e "    Your existing config will be backed up before changes."
-echo -n "  Enter choice [y/N] (default: N): "
-read -r nvim_choice
-
-case "${nvim_choice:-N}" in
-    [Yy]) USE_NVIM=true ;;
-    *)    USE_NVIM=false ;;
-esac
-
-echo -e "  Neovim config: ${CYAN}${USE_NVIM}${NC}"
-
-echo -e "\n  Install Antigravity CLI + codebase-memory-mcp MCP?"
-echo -e "    Antigravity CLI (Google AI coding agent) with codebase-memory-mcp"
-echo -e "    pre-configured as the default MCP server for code intelligence."
-echo -e "    Your existing antigravity config is backed up before changes."
-echo -n "  Enter choice [y/N] (default: N): "
-read -r mcp_choice
-
-case "${mcp_choice:-N}" in
-    [Yy]) USE_MCP=true ;;
-    *)    USE_MCP=false ;;
-esac
-
-echo -e "  Antigravity CLI + MCP: ${CYAN}${USE_MCP}${NC}"
-
-echo -e "\n  Install OpenCode CLI + codebase-memory-mcp MCP?"
-echo -e "    OpenCode (open source AI coding agent) with codebase-memory-mcp"
-echo -e "    pre-configured as the default MCP server for code intelligence."
-echo -e "    https://opencode.ai — free models included."
-echo -n "  Enter choice [y/N] (default: N): "
-read -r opencode_choice
-
-case "${opencode_choice:-N}" in
-    [Yy]) USE_OPENCODE=true ;;
-    *)    USE_OPENCODE=false ;;
-esac
-
-echo -e "  OpenCode CLI + MCP: ${CYAN}${USE_OPENCODE}${NC}"
+# Normalize to booleans
+[[ "$USE_TMUX" =~ ^[Yy]$ ]] && USE_TMUX=true || USE_TMUX=false
+[[ "$USE_NVIM" =~ ^[Yy]$ ]] && USE_NVIM=true || USE_NVIM=false
+[[ "$USE_MCP" =~ ^[Yy]$ ]] && USE_MCP=true || USE_MCP=false
+[[ "$USE_OPENCODE" =~ ^[Yy]$ ]] && USE_OPENCODE=true || USE_OPENCODE=false
 
 # -------------------------------------------------------------------
 # Stage 3 — Mode-Aware Dependency Resolution
@@ -205,6 +135,8 @@ case "$MODE" in
     dms)        SHELL_ENGINE="dms" ;;
     crystaldock) SHELL_ENGINE="crystal-dock" ;;
     noctalia)   SHELL_ENGINE="sfwbar" ;;
+    tworow|lxqt-classic|lxqt-minimal|lxqt-standalone|lxqt-dual-lxqt|lxqt-vertical|lxqt-bottom)
+                SHELL_ENGINE="lxqt-panel" ;;
 esac
 
 # Check current status of each engine
@@ -212,19 +144,13 @@ check_status() {
     command -v "$1" >/dev/null 2>&1 && echo "✓" || echo "✗"
 }
 
-echo -e "\n  ${CYAN}Engine Status:${NC}"
-echo -e "    labwc        $(check_status labwc)"
-echo -e "    sfwbar       $(check_status sfwbar)"
-echo -e "    $LAUNCHER       $(check_status $LAUNCHER)"
-echo -e "    $TERMINAL       $(check_status $TERMINAL)"
+echo -e "\n  ${CYAN}Engine:${NC} labwc=$(check_status labwc) sfwbar=$(check_status sfwbar) $LAUNCHER=$(check_status $LAUNCHER)"
 if [ -n "$SHELL_ENGINE" ]; then
-    echo -e "    $SHELL_ENGINE  $(check_status $SHELL_ENGINE)"
+    echo -e "          $SHELL_ENGINE=$(check_status $SHELL_ENGINE)"
 fi
 
-echo -e "\n  ${CYAN}How to proceed:${NC}"
-echo -e "    1) Auto-setup — install packages from repos + build unfound deps"
-echo -e "    2) Configs only — just deploy dotfiles (I'll handle deps)"
-echo -n "  Enter choice [1-2] (default: 1): "
+echo -e "\n  ${CYAN}Install:${NC}  1) auto-setup (packages + build)  2) configs only"
+echo -n "  Choice [1-2]: "
 read -r dep_choice
 
 case "${dep_choice:-1}" in
@@ -245,15 +171,33 @@ case "${dep_choice:-1}" in
             ! command -v dms >/dev/null 2>&1 && need_build="$need_build dms"
         elif [ "$MODE" = "crystaldock" ]; then
             ! command -v crystal-dock >/dev/null 2>&1 && need_build="$need_build crystal-dock"
+        elif [[ "$MODE" == tworow || "$MODE" == lxqt-* ]]; then
+            ! command -v lxqt-panel >/dev/null 2>&1 && need_build="$need_build lxqt-panel"
         fi
 
         if [ -n "$need_build" ]; then
             echo -e "\n${YELLOW}⚠${NC} Unfound engines:${need_build}"
             echo -n "  Build them from source now? [y/N]: "
             read -r build_now
-            if [[ "$build_now" =~ ^[Yy]$ ]] && [ -f "${SCRIPT_DIR}/build-ocws-core.sh" ]; then
+            if [[ "$build_now" =~ ^[Yy]$ ]]; then
                 for engine in $need_build; do
-                    bash "${SCRIPT_DIR}/build-ocws-core.sh" "$engine"
+                    case "$engine" in
+                        dms)
+                            [ -f "${SCRIPT_DIR}/build-ocws-core.sh" ] \
+                                && bash "${SCRIPT_DIR}/build-ocws-core.sh" dms \
+                                || echo -e "  dms:    git clone --depth=1 https://github.com/DankShrine/dms.git && cd dms && make && sudo make install"
+                            ;;
+                        crystal-dock)
+                            echo -e "  crystal-dock: see https://github.com/crystal-dock/crystal-dock"
+                            ;;
+                        lxqt-panel)
+                            if [ -f "${SCRIPT_DIR}/install-lxqt-panel-source.sh" ]; then
+                                bash "${SCRIPT_DIR}/install-lxqt-panel-source.sh"
+                            else
+                                echo -e "  lxqt-panel: run ./install-lxqt-panel-source.sh"
+                            fi
+                            ;;
+                    esac
                 done
             else
                 for engine in $need_build; do
@@ -263,6 +207,9 @@ case "${dep_choice:-1}" in
                             ;;
                         crystal-dock)
                             echo -e "  crystal-dock: see https://github.com/crystal-dock/crystal-dock"
+                            ;;
+                        lxqt-panel)
+                            echo -e "  lxqt-panel: ./install-lxqt-panel-source.sh"
                             ;;
                     esac
                 done
@@ -369,43 +316,14 @@ fi
 # -------------------------------------------------------------------
 
 # Pre-deploy confirmation
-echo -e "\n${YELLOW}⚠ WARNING: This will deploy configurations to ~/.config/ and ~/.local/bin/${NC}"
-echo -e "  Mode: ${CYAN}${MODE_DESC}${NC}"
-echo -e "  Launcher: ${CYAN}${LAUNCHER_DESC}${NC}"
-echo -e "  Terminal: ${CYAN}${TERMINAL_DESC}${NC}"
-echo -e "  Tmux config: ${CYAN}${USE_TMUX}${NC}"
-echo -e "  Affected directories: labwc, ocws, foot, gtk-3.0, gtk-4.0, mako, qt6ct"
-echo -e "  Neovim config: ${CYAN}${USE_NVIM}${NC}"
-echo -e "  Antigravity CLI + MCP: ${CYAN}${USE_MCP}${NC}"
-echo -e "  OpenCode CLI + MCP: ${CYAN}${USE_OPENCODE}${NC}"
+echo -e "\n  ${CYAN}Deploy:${NC} $MODE_DESC | $LAUNCHER | foot"
+echo -e "  ${CYAN}Extras:${NC} tmux=$USE_TMUX nvim=$USE_NVIM mcp=$USE_MCP opencode=$USE_OPENCODE"
+echo -e "  ${YELLOW}Target: ~/.config/ ~/.local/bin/${NC}"
 
-if [[ "$LAUNCHER" == "rofi" ]]; then
-    echo -e "  ${CYAN}  rofi${NC}: ~/.config/rofi/"
-fi
-
-case "$MODE" in
-    doublepanel)
-        echo -e "  Shell: OCWS dual-panel (top bar + dock via sfwbar)"
-        echo -e "  ${CYAN}  OCWS:${NC} full bar config, widgets, plugins, themes"
-        ;;
-    crystaldock)
-        echo -e "  Shell: crystal-dock dock + sfwbar single statusbar"
-        echo -e "  ${CYAN}  OCWS:${NC} single top statusbar via sfwbar-full.config"
-        ;;
-    dms)
-        echo -e "  Shell: DankMaterialShell"
-        echo -e "  ${CYAN}  OCWS:${NC} infrastructure only (no sfwbar bars)"
-        ;;
-    noctalia)
-        echo -e "  Shell: Noctalia"
-        echo -e "  ${CYAN}  OCWS:${NC} infrastructure only (no sfwbar bars)"
-        ;;
-esac
-
-echo -n "  Deploy now? [y/N]: "
+echo -n "  Deploy? [y/N]: "
 read -r confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-    echo -e "\n  Installation aborted."
+    echo -e "\n  Aborted."
     exit 0
 fi
 
@@ -419,30 +337,94 @@ mkdir -p ~/.local/bin/actions
 
 case "$MODE" in
     crystaldock) mkdir -p ~/.config/crystal-dock ;;
-    dms)         mkdir -p ~/.config/DankMaterialShell ;;
+    dms)         mkdir -p ~/.local/share/quickshell/dms
+                 mkdir -p ~/.config/quickshell/dms ;;
     noctalia)    mkdir -p ~/.config/noctalia ;;
 esac
 pass "Directories created."
+
+# --- Disable GNOME Keyring "login keyring" popup ---
+# Removes the old keyring so it's recreated without a password prompt.
+# The labwc environment file also sets GNOME_KEYRING_CONTROL=unset to
+# prevent D-Bus/systemd from auto-starting gnome-keyring-daemon.
+info "Disabling GNOME Keyring login popup..."
+KEYRING_DIR="$HOME/.local/share/keyrings"
+KEYRING_FILE="$KEYRING_DIR/login.keyring"
+KEYRING_CFG="$KEYRING_DIR/login.keyring.cfg"
+
+if [ -d "$KEYRING_DIR" ] && [ -f "$KEYRING_FILE" ]; then
+    # Backup and remove old keyring — will be recreated with empty password
+    BAK_DIR="$KEYRING_DIR.bak.$(date +%Y%m%d%H%M%S)"
+    mkdir -p "$BAK_DIR"
+    cp "$KEYRING_DIR"/login.keyring* "$BAK_DIR/" 2>/dev/null || true
+    rm -f "$KEYRING_FILE" "$KEYRING_CFG" 2>/dev/null || true
+    pass "Old keyring removed (will auto-create without password popup)."
+else
+    pass "No existing keyring to fix."
+fi
 
 # 3. Deploy Labwc Core
 info "Deploying Compositor Rules (labwc)..."
 cp -r "$SCRIPT_DIR/dotfiles/labwc/"* ~/.config/labwc/ 2>/dev/null || fail "Failed to deploy labwc configurations"
 pass "labwc configurations synced."
 
+# 3b. Deploy LXQt Panel config (used by the tworow shell mode: lxqt-panel on top)
+if [ -d "$SCRIPT_DIR/dotfiles/lxqt" ]; then
+    info "Deploying LXQt Panel configuration..."
+    mkdir -p ~/.config/lxqt
+    cp -r "$SCRIPT_DIR/dotfiles/lxqt/"* ~/.config/lxqt/ 2>/dev/null || true
+    pass "LXQt Panel configuration synced."
+fi
+
+# 3b2. Deploy wallpaper sources for the wallpaper script
+if [ -f "$SCRIPT_DIR/dotfiles/wallpaper-sources.txt" ]; then
+    mkdir -p ~/.config/ocws
+    cp "$SCRIPT_DIR/dotfiles/wallpaper-sources.txt" ~/.config/ocws/wallpaper-sources.txt 2>/dev/null || true
+    pass "Wallpaper sources synced."
+fi
+
+# 3c. Wire runtime scripts into the labwc session PATH
+# rc.xml keybinds/menus call scripts (theme, labwc-theme, shell-mode-picker.sh,
+# actions.sh, shell-switcher.sh, workspace-actions.sh, wallpaper, ...). These
+# scripts use $SCRIPT_DIR-relative paths (lib/, theme-engine.sh, ../themes), so
+# they must run from the repo — we add the repo scripts dirs to the labwc
+# session PATH instead of copying them (copying would break those paths).
+info "Wiring runtime scripts into PATH..."
+ENV_FILE="$HOME/.config/labwc/environment"
+if [ -f "$ENV_FILE" ]; then
+    # Remove any previously injected line (idempotent on re-install)
+    sed -i '/# OCWS runtime scripts (injected by install.sh)/d' "$ENV_FILE"
+    # Absolute PATH built from the current one so normal dirs are preserved
+    NEW_PATH="${PATH}:$HOME/.local/bin:$SCRIPT_DIR/scripts:$SCRIPT_DIR/scripts/actions"
+    printf '\n# OCWS runtime scripts (injected by install.sh)\nPATH=%s\n' "$NEW_PATH" >> "$ENV_FILE"
+fi
+# actions.sh dispatches to modules in ~/.local/bin/actions/ — symlink them from
+# the repo so the dispatcher keeps working.
+mkdir -p ~/.local/bin/actions
+ln -sf "$SCRIPT_DIR"/scripts/actions/*.sh ~/.local/bin/actions/ 2>/dev/null || true
+# Standalone wallpaper helper referenced by rc.xml (dotfiles/wallpaper)
+if [ -f "$SCRIPT_DIR/dotfiles/wallpaper" ]; then
+    cp "$SCRIPT_DIR/dotfiles/wallpaper" ~/.local/bin/wallpaper 2>/dev/null && chmod +x ~/.local/bin/wallpaper || true
+fi
+# Panel mode cycle script referenced by rc.xml (Super+p)
+for script in panel-mode-cycle lxqt-panel-switcher; do
+    if [ -f "$SCRIPT_DIR/scripts/$script" ]; then
+        cp "$SCRIPT_DIR/scripts/$script" "$HOME/.local/bin/$script" 2>/dev/null && chmod +x "$HOME/.local/bin/$script" || true
+    fi
+done
+pass "Runtime scripts wired into PATH."
+
 # 4. Deploy OCWS Shell (supporting infrastructure for all modes)
 info "Deploying the OCWS Shell..."
 case "$MODE" in
-    doublepanel)
-        # Full OCWS dual-panel bar config
+    doublepanel|crystaldock|tworow|minimal|lxqt-classic|lxqt-minimal|lxqt-vertical|lxqt-bottom)
+        # Full OCWS bar config — includes modes/ and bars/ (required by
+        # tworow/minimal so their .mode files and bar layouts deploy).
         rsync -a --exclude='user.config' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>/dev/null || cp -r "$SCRIPT_DIR/dotfiles/ocws/"* ~/.config/ocws/ 2>/dev/null || fail "Failed to deploy OCWS shell"
-        ;;
-    crystaldock)
-        # OCWS infrastructure + single top statusbar (no dock)
-        rsync -a --exclude='user.config' --exclude='ocws.config' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>/dev/null || cp -r "$SCRIPT_DIR/dotfiles/ocws/"* ~/.config/ocws/ 2>/dev/null || fail "Failed to deploy OCWS shell"
         ;;
     *)
         # Supporting infrastructure only — no sfwbar bar config at all
-        rsync -a --exclude='user.config' --exclude='ocws.config' --exclude='ocws.css' --exclude='theme.css' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>/dev/null || cp -r "$SCRIPT_DIR/dotfiles/ocws/"* ~/.config/ocws/ 2>/dev/null || fail "Failed to deploy OCWS shell"
+        rsync -a --exclude='user.config' --exclude='modes/' --exclude='bars/' --exclude='css/ocws.css' "$SCRIPT_DIR/dotfiles/ocws/" ~/.config/ocws/ 2>/dev/null || cp -r "$SCRIPT_DIR/dotfiles/ocws/"* ~/.config/ocws/ 2>/dev/null || fail "Failed to deploy OCWS shell"
         ;;
 esac
 
@@ -454,6 +436,14 @@ echo "$MODE" > ~/.config/ocws/mode
 echo "$LAUNCHER" > ~/.config/ocws/launcher
 echo "$TERMINAL" > ~/.config/ocws/terminal
 pass "OCWS infrastructure, mode ($MODE), launcher ($LAUNCHER), and terminal ($TERMINAL) synced."
+
+# Deploy standalone sfwbar theme (used outside OCWS modes)
+if [ -f "$SCRIPT_DIR/dotfiles/sfwbar/theme.css" ]; then
+    info "Deploying sfwbar theme..."
+    mkdir -p ~/.config/sfwbar
+    cp "$SCRIPT_DIR/dotfiles/sfwbar/theme.css" ~/.config/sfwbar/theme.css 2>/dev/null || true
+    pass "sfwbar theme.css synced."
+fi
 
 # 5. Deploy shell-specific configs
 case "$MODE" in
@@ -467,7 +457,19 @@ case "$MODE" in
     dms)
         if [ -d "$SCRIPT_DIR/dotfiles/DankMaterialShell" ]; then
             info "Deploying Dank Material Shell configuration..."
-            rsync -a "$SCRIPT_DIR/dotfiles/DankMaterialShell/" ~/.config/DankMaterialShell/ 2>/dev/null || true
+            # DMS defaults to ~/.config/quickshell/dms/ for its QML shell files.
+            # Quickshell's module scanner can't follow symlinks, so we must copy.
+            mkdir -p ~/.local/share/quickshell/dms
+            mkdir -p ~/.config/quickshell
+            rm -rf ~/.config/quickshell/dms
+            cp -r ~/.local/share/quickshell/dms ~/.config/quickshell/dms
+            # Deploy user settings into the config dir
+            rsync -a "$SCRIPT_DIR/dotfiles/DankMaterialShell/" ~/.config/quickshell/dms/ 2>/dev/null || true
+            # Strip unsupported pragmas for older quickshell versions
+            DMS_SHELL="$HOME/.config/quickshell/dms/shell.qml"
+            if [ -f "$DMS_SHELL" ]; then
+                sed -i '/^\/\/@ pragma AppId /d' "$DMS_SHELL"
+            fi
             pass "Dank Material Shell config synced."
         fi
         ;;

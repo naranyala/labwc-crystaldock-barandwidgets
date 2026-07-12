@@ -1,29 +1,22 @@
 #Api2
 
-scanner {
-  step = 2000
-  exec("/bin/sh -c 'wpctl get-volume @DEFAULT_SINK@ 2>/dev/null'") {
-    XVolRaw = Grab(First)
-    XVolLevel = Val(RegEx("Volume: ([0-9.]+)", XVolRaw)) * 100
-    XVolMuted = RegEx("MUTED", XVolRaw)
-  }
-}
+# Volume is pushed by ocws-daemon.sh (pactl subscribe -> ocws-emit System.Volume)
+# via XVolLevel / XVolMuted. No per-widget polling.
 
 export button "volume-text" {
-  interval = 2000
   style = "text_widget"
-  tooltip = If(XVolMuted, "Volume: Muted", "Volume: " + Str(XVolLevel, 0) + "%")
+  tooltip = If(XVolMuted = 1, "Volume: Muted", "Volume: " + Str(XVolLevel, 0) + "%")
   action = PopUp("VolPopup")
   action[scroll_up] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05+")
   action[scroll_down] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05-")
   action[middle] = Exec("wpctl set-mute @DEFAULT_SINK@ toggle")
 
   label {
-    value = If(XVolMuted, "󰝟 Muted",
+    value = If(XVolMuted = 1, "󰝟 Muted",
             If(XVolLevel > 66, "󰕾 ",
              If(XVolLevel > 33, "󰖀 ",
               "󰕿 "))) +
-            If(XVolMuted, "", Str(XVolLevel, 0) + "%")
+            If(XVolMuted = 1, "", Str(XVolLevel, 0) + "%")
   }
 }
 
@@ -37,8 +30,7 @@ PopUp("VolPopup") {
     }
     label {
       style = "detail_value"
-      interval = 2000
-      value = If(XVolMuted, "Muted", Str(XVolLevel, 0) + "%")
+      value = If(XVolMuted = 1, "Muted", Str(XVolLevel, 0) + "%")
     }
     scale {
       style = "detail_slider"

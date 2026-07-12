@@ -1,0 +1,4 @@
+#!/bin/bash
+# A fuzzel-based GUI prompt for sudo -A
+prompt="${1:-Password: }"
+fuzzel -d --prompt-only="$prompt" --password="*"

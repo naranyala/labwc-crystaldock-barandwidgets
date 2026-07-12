@@ -156,7 +156,7 @@ _14/27 fixed — see git log for details._
 - [ ] `scripts/start-labwc.sh:92` — **Undefined array**: `NEW_OPTIONAL_DEPS` never declared; `set -u` crashes on modern bash.
 - [ ] `scripts/actions.sh:13` — **Deploy target mismatch**: looks for actions in `~/.local/bin/actions/` but install.sh deploys scripts to `dotfiles/scripts/actions/`.
 - [ ] `install.sh` — **No backup before overwrite** for labwc, ocws, fuzzel, foot, gtk, mako, qt6ct.
-- [ ] `install.sh` — **Missing deploy targets**: `dotfiles/fontconfig/fonts.conf` and `dotfiles/sfwbar/theme.css` never deployed.
+- [x] `install.sh` — **Missing deploy targets**: `dotfiles/fontconfig/fonts.conf` and `dotfiles/sfwbar/theme.css` never deployed. — **FIXED**: `sfwbar/theme.css` now deployed to `~/.config/sfwbar/theme.css`.
 - [x] `distro/ubuntu-lubuntu-lxqt.sh`, `distro/arch-artix-lxqt.sh` — **FIXED**: Added stub with error message and exit 1.
 
 ### MEDIUM — Config correctness & portability

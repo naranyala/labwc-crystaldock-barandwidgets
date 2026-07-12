@@ -18,6 +18,9 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 # --- XDG Desktop Portal ---
+# Clean crystal-dock IPC artifacts to prevent startup failures on soft-reboots
+rm -f /tmp/qipc_sharedmemory_* /tmp/qipc_systemsem_* /dev/shm/qipc_sharedmemory_* /dev/shm/qipc_systemsem_* 2>/dev/null
+
 # Kill stale portals, then start fresh instances
 killall -q xdg-desktop-portal xdg-desktop-portal-wlr xdg-desktop-portal-gtk 2>/dev/null || true
 sleep 0.2
@@ -35,7 +38,7 @@ fi
 
 # --- Wallpaper ---
 if command -v wallpaper >/dev/null 2>&1; then
-  wallpaper random &
+  wallpaper auto &
 elif command -v swaybg >/dev/null 2>&1; then
   WP_DIR="$HOME/Pictures/wallpapers"
   if [ -d "$WP_DIR" ]; then
@@ -47,29 +50,166 @@ elif command -v swaybg >/dev/null 2>&1; then
 fi
 
 # --- Shell Mode Selection ---
-# Uses toggle-shell to start the configured shell mode
+# Uses toggle-shell to start the configured shell mode.
+# Default mode is "tworow": lxqt-panel docked at the top (Wayland /
+# layer-shell) plus the OCWS 2-row sfwbar taskbar docked at the bottom.
+
+# Wait until the Wayland compositor is actually accepting clients, so the
+# panels don't fail to connect on a slow startup and silently never appear.
+wait_for_wayland() {
+  local sock="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/${WAYLAND_DISPLAY:-wayland-0}"
+  local tries=0
+  while [ ! -S "$sock" ] && [ "$tries" -lt 50 ]; do
+    sleep 0.2
+    tries=$((tries + 1))
+  done
+}
+wait_for_wayland
+
+# Resolve the requested mode (env var > ocws mode file > legacy file > default)
+MODE=""
+if [ -n "${LABWC_SHELL_MODE:-}" ]; then
+  MODE="$LABWC_SHELL_MODE"
+elif [ -f "$HOME/.config/ocws/mode" ]; then
+  MODE="$(cat "$HOME/.config/ocws/mode")"
+elif [ -f "$HOME/.config/labwc-widgets/shell-mode" ]; then
+  MODE="$(cat "$HOME/.config/labwc-widgets/shell-mode")"
+fi
+MODE="${MODE:-crystaldock}"
+
+# Helper: start lxqt-panel only if it isn't already running.
+start_lxqt_panel() {
+  command -v lxqt-panel >/dev/null 2>&1 || return 0
+  pgrep -x lxqt-panel >/dev/null 2>&1 && return 0
+  # layer-shell integration is required for lxqt-panel to dock on labwc;
+  # the wlroots token lets it pick the correct Wayland backend.
+  QT_WAYLAND_SHELL_INTEGRATION=layer-shell \
+    XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-labwc}:wlroots" \
+    nohup lxqt-panel -c "$HOME/.config/lxqt/panel.conf" >/dev/null 2>&1 &
+}
+
 if command -v toggle-shell >/dev/null 2>&1; then
-  # Check for environment variable first, then config file, else default
-  if [ -n "${LABWC_SHELL_MODE:-}" ]; then
-    toggle-shell "$LABWC_SHELL_MODE"
-  elif [ -f "$HOME/.config/ocws/mode" ]; then
-    MODE="$(cat "$HOME/.config/ocws/mode")"
-    toggle-shell "$MODE"
-  elif [ -f "$HOME/.config/labwc-widgets/shell-mode" ]; then
-    MODE="$(cat "$HOME/.config/labwc-widgets/shell-mode")"
-    toggle-shell "$MODE"
-  else
-    toggle-shell noctalia
-  fi
+  toggle-shell "$MODE"
 elif command -v shell-switcher.sh >/dev/null 2>&1; then
   shell-switcher.sh
 else
-  echo "warning: no shell switcher found, starting noctalia directly"
-  if command -v noctalia >/dev/null 2>&1; then
-    nohup noctalia > /dev/null 2>&1 &
-  elif command -v sfwbar >/dev/null 2>&1; then
-    nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
-  fi
+  # Direct sfwbar launch — no toggle-shell available
+  case "$MODE" in
+    doublepanel|dual)
+      nohup sfwbar -f "$HOME/.config/ocws/modes/dual.mode" > /dev/null 2>&1 &
+      ;;
+    crystaldock)
+      nohup sfwbar -f "$HOME/.config/ocws/modes/crystaldock.mode" > /dev/null 2>&1 &
+      if command -v crystal-dock >/dev/null 2>&1; then
+        nohup crystal-dock >/dev/null 2>&1 &
+      fi
+      ;;
+    minimal)
+      nohup sfwbar -f "$HOME/.config/ocws/modes/minimal.mode" > /dev/null 2>&1 &
+      ;;
+    tworow)
+      nohup sfwbar -f "$HOME/.config/ocws/modes/tworow.mode" > /dev/null 2>&1 &
+      start_lxqt_panel
+      ;;
+    lxqt-classic)
+      # Deploy lxqt-panel config
+      if [ -f "$HOME/.config/lxqt/modes/classic.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/classic.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-classic.mode" > /dev/null 2>&1 &
+      ;;
+    lxqt-minimal)
+      if [ -f "$HOME/.config/lxqt/modes/minimal.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/minimal.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-minimal.mode" > /dev/null 2>&1 &
+      ;;
+    lxqt-standalone)
+      if [ -f "$HOME/.config/lxqt/modes/standalone.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/standalone.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      ;;
+    lxqt-dual-lxqt)
+      if [ -f "$HOME/.config/lxqt/modes/dual-lxqt.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/dual-lxqt.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      ;;
+    lxqt-vertical)
+      if [ -f "$HOME/.config/lxqt/modes/vertical.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/vertical.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-vertical.mode" > /dev/null 2>&1 &
+      ;;
+    lxqt-bottom)
+      if [ -f "$HOME/.config/lxqt/modes/bottom.conf" ]; then
+        cp "$HOME/.config/lxqt/modes/bottom.conf" "$HOME/.config/lxqt/panel.conf"
+      fi
+      start_lxqt_panel
+      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-bottom.mode" > /dev/null 2>&1 &
+      ;;
+    dms)
+      if command -v dms >/dev/null 2>&1; then
+        nohup dms run > /dev/null 2>&1 &
+      fi
+      ;;
+    noctalia)
+      if command -v noctalia >/dev/null 2>&1; then
+        nohup noctalia > /dev/null 2>&1 &
+      fi
+      ;;
+    *)
+      nohup sfwbar -f "$HOME/.config/ocws/modes/dual.mode" > /dev/null 2>&1 &
+      ;;
+  esac
+fi
+
+# --- Guarantee panels are running (re-run if the compositor was late) ---
+# For lxqt-panel + sfwbar pairings, retry a few times so both are up even
+# if labwc wasn't ready on the first launch attempt.
+case "$MODE" in
+  doublepanel|crystaldock|minimal)
+    # Sfwbar-only modes — retry until sfwbar is up
+    for _ in 1 2 3 4 5; do
+      if pgrep -x sfwbar >/dev/null 2>&1; then
+        break
+      fi
+      sleep 1
+    done
+    ;;
+  tworow|lxqt-classic|lxqt-minimal|lxqt-vertical|lxqt-bottom)
+    # Modes that pair lxqt-panel with sfwbar
+    for _ in 1 2 3 4 5; do
+      start_lxqt_panel
+      if pgrep -x sfwbar >/dev/null 2>&1 && \
+         { ! command -v lxqt-panel >/dev/null 2>&1 || pgrep -x lxqt-panel >/dev/null 2>&1; }; then
+        break
+      fi
+      sleep 1
+    done
+    ;;
+  lxqt-standalone|lxqt-dual-lxqt)
+    # Modes with lxqt-panel only (no sfwbar)
+    for _ in 1 2 3 4 5; do
+      start_lxqt_panel
+      if { ! command -v lxqt-panel >/dev/null 2>&1 || pgrep -x lxqt-panel >/dev/null 2>&1; }; then
+        break
+      fi
+      sleep 1
+    done
+    ;;
+esac
+
+# --- OCWS State Daemon (event-driven IPC to sfwbar) ---
+# Listens for volume/brightness/media changes and pushes them to sfwbar
+# via ocws-emit. Self-retries until sfwbar is reachable on startup, and
+# self-manages a PIDFILE so it won't collide with previous instances.
+if [ -x "$HOME/.config/ocws/ocws-daemon.sh" ]; then
+  nohup "$HOME/.config/ocws/ocws-daemon.sh" >/dev/null 2>&1 &
 fi
 
 # --- Bi-Directional Dock Sync Daemon ---
@@ -127,8 +267,22 @@ elif command -v polkit-agent-helper-1 >/dev/null 2>&1; then
 fi
 
 # --- Authentication & Keyring ---
-if command -v gnome-keyring-daemon >/dev/null 2>&1; then
-  gnome-keyring-daemon --start --components=secrets,ssh,pkcs11 &
+# Disabled: gnome-keyring-daemon causes a "login keyring" password popup
+# on every session start. SSH agent is handled separately below.
+# To re-enable: uncomment the block and run `seahorse` to set an empty password.
+pkill -x gnome-keyring-daemon 2>/dev/null || true
+
+# --- SSH Agent ---
+# Use dedicated ssh-agent instead of gnome-keyring's ssh component.
+# This avoids keyring password prompts for git over SSH.
+if [ -z "$SSH_AUTH_SOCK" ] || [ ! -S "$SSH_AUTH_SOCK" ]; then
+  eval "$(ssh-agent -s)" >/dev/null 2>&1
+fi
+# Auto-add keys if ssh-agent is running and keys exist
+if command -v ssh-add >/dev/null 2>&1 && [ -n "$SSH_AUTH_SOCK" ]; then
+  for key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_rsa"; do
+    [ -f "$key" ] && ssh-add -q "$key" 2>/dev/null
+  done
 fi
 
 # --- Idle & Screen Locker ---

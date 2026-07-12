@@ -1,0 +1,36 @@
+# Compact bar widget set — single bar with integrated taskbar + dock
+# Launcher, workspaces, dock, taskbar, clock, controls
+
+# --- Left: Launcher + Workspaces ---
+widget "widgets/core/launcher.widget"
+widget "widgets/core/workspaces.widget"
+
+# --- Center-Left: Dock Apps ---
+widget "widgets/core/dock.widget"
+
+# --- Center: Taskbar ---
+taskbar {
+  style = "taskbar"
+  rows = 1
+  icons = true
+  labels = false
+  tooltips = true
+  icon_size = 24
+  sort = false
+  title_width = 20
+  action[Drag] = Focus()
+  action[RightClick] = Menu("winops")
+  action[MiddleClick] = Close()
+  css = "* { -GtkWidget-hexpand: true; -GtkWidget-halign: center; }"
+}
+
+# --- Spacer ---
+label { css = "* { -GtkWidget-hexpand: true; }" }
+
+# --- Right: Status + Controls ---
+widget "widgets/media/media-player.widget"
+widget "widgets/controls/volume-text.widget"
+widget "widgets/system/battery-text.widget"
+widget "widgets/core/clock.widget"
+widget "widgets/popups/ocws-control-center.widget"
+include("widgets/core/tray.widget")

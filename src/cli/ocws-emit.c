@@ -21,6 +21,9 @@ const char* map_namespace(const char* ns) {
     if (strcmp(ns, "Media.Title") == 0) return "XMediaTitle";
     if (strcmp(ns, "Media.Artist") == 0) return "XMediaArtist";
     if (strcmp(ns, "Media.Status") == 0) return "XMediaStatus";
+    if (strcmp(ns, "Media.Album") == 0) return "XMediaAlbum";
+    if (strcmp(ns, "Media.Position") == 0) return "XMediaPosition";
+    if (strcmp(ns, "Media.Length") == 0) return "XMediaLength";
     return ns;
 }
 

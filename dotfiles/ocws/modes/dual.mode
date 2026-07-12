@@ -1,0 +1,11 @@
+#Api2
+# dual.mode — Dual-panel mode (top statusbar + bottom dock/taskbar + desktop)
+# Launch: sfwbar -f modes/dual.mode
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Bars ---
+include("../bars/statusbar.config")
+include("../bars/dockbar.config")
+include("../bars/desktop.config")

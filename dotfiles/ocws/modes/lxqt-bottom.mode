@@ -1,0 +1,26 @@
+#Api2
+# lxqt-bottom.mode — Top statusbar for bottom mode
+# Paired with lxqt-panel bottom (bottom.conf)
+# Launch: sfwbar -f modes/lxqt-bottom.mode
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Top Statusbar ---
+bar "statusbar:top" {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+  exclusive_zone = "auto"
+  size = $OCWS_TOP_SIZE
+
+  # --- Left: Launcher + Workspaces ---
+  widget "widgets/core/launcher.widget"
+  widget "widgets/core/workspaces.widget"
+
+  # --- Center: Spacer ---
+  label { css = "* { -GtkWidget-hexpand: true; }" }
+
+  # --- Right: System Metrics + Status ---
+  include("../widget-sets/full.set")
+}

@@ -1,0 +1,9 @@
+#Api2
+# modes/tworow.mode — Bottom only, 2-row taskbar
+# Paired with lxqt-panel at the top
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Bar Layout ---
+include("../bars/tworowbar.config")

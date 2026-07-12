@@ -29,7 +29,7 @@
   </theme>
 
   <desktops>
-    <number>9</number>
+    <number>4</number>
     <firstdesk>1</firstdesk>
   </desktops>
 
@@ -43,6 +43,7 @@
     <keybind key="A-F4"><action name="Close"/></keybind>
     <keybind key="W-m"><action name="Execute"><command>vlc</command></action></keybind>
     <keybind key="W-S-s"><action name="Execute"><command>shell-mode-picker.sh</command></action></keybind>
+    <keybind key="W-p"><action name="Execute"><command>panel-mode-cycle</command></action></keybind>
     <keybind key="W-x"><action name="Execute"><command>actions.sh dotfiles-menu</command></action></keybind>
 
 
@@ -55,7 +56,7 @@
     <!-- Window management -->
     <keybind key="A-f"><action name="ToggleFullscreen"/></keybind>
     <keybind key="W-a"><action name="ToggleMaximize"/></keybind>
-    <keybind key="A-space"><action name="ShowMenu"><menu>root-menu</menu></action></keybind>
+    <keybind key="A-space"><action name="ShowMenu"><menu>client-menu</menu></action></keybind>
 
     <!-- Focus cycling -->
     <keybind key="A-Left"><action name="PreviousWindow"/></keybind>
@@ -126,7 +127,7 @@
     <!-- App Launcher Variants -->
 
     <!-- Calculator -->
-    <keybind key="A-c"><action name="Execute"><command>actions.sh rofi-calc</command></action></keybind>
+    <keybind key="A-c"><action name="Execute"><command>actions.sh fuzzel-calc</command></action></keybind>
 
     <!-- Power & Maintenance Menus -->
     <keybind key="A-F5"><action name="Execute"><command>actions.sh power-menu</command></action></keybind>
@@ -153,7 +154,7 @@
     <keybind key="W-Return"><action name="Execute"><command>foot</command></action></keybind>
     <!-- ponytail: sfwbar window switcher disabled — sfwbar not default anymore -->
     <!-- <keybind key="A-BackSpace"><action name="Execute"><command>sfwbar -c "SwitcherEvent('forward')"</command></action></keybind> -->
-    <keybind key="W-w"><action name="Execute"><command>wallpaper random</command></action></keybind>
+    <keybind key="W-w"><action name="Execute"><command>wallpaper auto</command></action></keybind>
     <keybind key="W-e"><action name="Execute"><command>nautilus</command></action></keybind>
     <keybind key="W-i"><action name="Execute"><command>icon-theme-picker.sh</command></action></keybind>
     <keybind key="W-c"><action name="Execute"><command>env GTK_USE_PORTAL=0 ocws-settings</command></action></keybind>
@@ -161,12 +162,12 @@
     <keybind key="W-d"><action name="ToggleShowDesktop"/></keybind>
 
     <!-- Theme Switcher -->
-    <keybind key="A-F12"><action name="Execute"><command>theme next</command></action></keybind>
-    <keybind key="A-S-F12"><action name="Execute"><command>theme</command></action></keybind>
+    <keybind key="A-F12"><action name="Execute"><command>theme.sh next</command></action></keybind>
+    <keybind key="A-S-F12"><action name="Execute"><command>theme.sh</command></action></keybind>
 
     <!-- Labwc Theme Switcher (compositor only, live reload) -->
-    <keybind key="W-F12"><action name="Execute"><command>labwc-theme next</command></action></keybind>
-    <keybind key="W-S-F12"><action name="Execute"><command>labwc-theme</command></action></keybind>
+    <keybind key="W-F12"><action name="Execute"><command>labwc-theme.sh next</command></action></keybind>
+    <keybind key="W-S-F12"><action name="Execute"><command>labwc-theme.sh</command></action></keybind>
 
     <!-- Superkey+f - Toggle Launcher (fuzzel/rofi) and Theme Reload -->
     <keybind key="W-f"><action name="Execute"><command>actions.sh launcher-toggle</command></action></keybind>
@@ -248,6 +249,8 @@
   </menu>
 
   <mouse>
+    <!-- Load labwc's default mouse bindings (incl. right-click menus), then override below -->
+    <default/>
     <defaultInstances/>
     <context name="Titlebar">
       <mousebind button="Left" action="Drag"><action name="Move"/></mousebind>
@@ -299,6 +302,17 @@
       <mousebind button="W-Right" action="Drag"><action name="Resize"/></mousebind>
       <mousebind button="W-Left" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
       <mousebind button="W-Right" action="Press"><action name="Focus"/><action name="Raise"/></mousebind>
+    </context>
+    <!-- Right-click on the desktop shows the root menu -->
+    <context name="Root">
+      <mousebind button="Right" action="Press"><action name="ShowMenu"><menu>root-menu</menu></action></mousebind>
+    </context>
+
+    <!-- Window menu on titlebar right-click (matches labwc default).
+         Do NOT bind plain Right on the "Client" content context, or labwc
+         will swallow every application right-click. -->
+    <context name="Title">
+      <mousebind button="Right" action="Press"><action name="ShowMenu"><menu>client-menu</menu></action></mousebind>
     </context>
   </mouse>
 

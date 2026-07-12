@@ -32,3 +32,16 @@ QT_QPA_PLATFORMTHEME=qt6ct
 
 # Terminal
 TERMINAL=foot
+
+# Sudo GUI Prompt Configuration
+# Set rofi-askpass as the default GUI password prompter for sudo -A
+# SUDO_ASKPASS=~/.local/bin/fuzzel-askpass
+SUDO_ASKPASS=~/.local/bin/rofi-askpass
+
+# Disable GNOME Keyring "login keyring" password popup
+# gnome-keyring-daemon auto-starts via D-Bus/systemd and prompts for a
+# password on every session. Setting GNOME_KEYRING_CONTROL to empty
+# prevents the daemon from binding. SSH_AUTH_SOCK is reset here so our
+# dedicated ssh-agent (see autostart) takes over cleanly.
+GNOME_KEYRING_CONTROL=
+SSH_AUTH_SOCK=

@@ -1,0 +1,19 @@
+#Api2
+# lxqt-standalone.mode — No sfwbar (lxqt-panel handles everything)
+# Paired with lxqt-panel standalone.conf
+# This file exists so toggle-shell has a valid .mode to reference.
+# sfwbar will not be launched for this mode.
+
+switcher { disable = true }
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Empty bar (sfwbar stays alive but invisible) ---
+bar "hidden:top" {
+  edge = "top"
+  layer = "background"
+  mirror = "*"
+  exclusive_zone = -1
+  size = 1
+}

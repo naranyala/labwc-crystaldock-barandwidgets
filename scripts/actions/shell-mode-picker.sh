@@ -1,26 +1,33 @@
 #!/bin/bash
 # shell-mode-picker.sh — Rofi-based interactive shell mode picker
-# Keybinding: Super+S
+# Keybinding: Super+Shift+s
 
 set -euo pipefail
 
 CFG="$HOME/.config/ocws/mode"
 mkdir -p "$(dirname "$CFG")"
 
-CURRENT="$(cat "$CFG" 2>/dev/null || echo noctalia)"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo crystaldock)"
 
 # Define available modes with descriptions
 declare -A MODES=(
-    ["doublepanel"]="  OCWS Double Panel — Dual sfwbar panels (default)"
+    ["doublepanel"]="  OCWS Double Panel — Dual sfwbar panels"
     ["crystaldock"]="  Crystal Dock — SFWBar statusbar + macOS-style dock"
     ["minimal"]="  OCWS Minimal — Single top panel, lightweight"
     ["dms"]="  Dank Material Shell — Material 3 bar + dock"
     ["noctalia"]="  Noctalia Shell — Minimal config shell"
+    ["tworow"]="  LXQt Tworow — Top panel + 2-row taskbar"
+    ["lxqt-classic"]="  LXQt Classic — Bottom panel + top statusbar"
+    ["lxqt-minimal"]="  LXQt Minimal — Tray+clock panel + minimal bar"
+    ["lxqt-standalone"]="  LXQt Standalone — All-in-one panel, no sfwbar"
+    ["lxqt-dual-lxqt"]="  LXQt Dual — Two lxqt-panels, no sfwbar"
+    ["lxqt-vertical"]="  LXQt Vertical — Right side panel + top statusbar"
+    ["lxqt-bottom"]="  LXQt Bottom — Full bottom panel + top statusbar"
 )
 
 # Build rofi input: current mode marker + all modes
 OPTIONS=""
-for mode in "doublepanel" "crystaldock" "minimal" "dms" "noctalia"; do
+for mode in $(echo "${!MODES[@]}" | tr ' ' '\n' | sort); do
     desc="${MODES[$mode]}"
     if [ "$mode" = "$CURRENT" ]; then
         OPTIONS="${OPTIONS} [active] ${desc}\n"
@@ -33,7 +40,7 @@ done
 SELECTED=$(echo -e "$OPTIONS" | rofi -dmenu \
     --prompt="Shell Mode: " \
     --width=50 \
-    --lines=6 \
+    --lines=14 \
     --font="Noto Sans:size=14" \
     --layer=overlay \
     2>/dev/null)
@@ -47,11 +54,18 @@ fi
 # Parse the selected mode
 NEW_MODE=""
 case "$SELECTED" in
-    *"Double Panel"*)  NEW_MODE="doublepanel" ;;
-    *"Crystal Dock"*)  NEW_MODE="crystaldock" ;;
-    *"OCWS Minimal"*)  NEW_MODE="minimal" ;;
-    *"Dank Material"*) NEW_MODE="dms" ;;
-    *"Noctalia"*)      NEW_MODE="noctalia" ;;
+    *"Double Panel"*)   NEW_MODE="doublepanel" ;;
+    *"Crystal Dock"*)   NEW_MODE="crystaldock" ;;
+    *"OCWS Minimal"*)   NEW_MODE="minimal" ;;
+    *"Dank Material"*)  NEW_MODE="dms" ;;
+    *"Noctalia"*)       NEW_MODE="noctalia" ;;
+    *"LXQt Tworow"*)    NEW_MODE="tworow" ;;
+    *"LXQt Classic"*)   NEW_MODE="lxqt-classic" ;;
+    *"LXQt Minimal"*)   NEW_MODE="lxqt-minimal" ;;
+    *"LXQt Standalone"*) NEW_MODE="lxqt-standalone" ;;
+    *"LXQt Dual"*)      NEW_MODE="lxqt-dual-lxqt" ;;
+    *"LXQt Vertical"*)  NEW_MODE="lxqt-vertical" ;;
+    *"LXQt Bottom"*)    NEW_MODE="lxqt-bottom" ;;
     *) exit 1 ;;
 esac
 

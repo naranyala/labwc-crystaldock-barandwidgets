@@ -1,0 +1,142 @@
+#!/bin/bash
+# lxqt-panel-switcher — Switch between lxqt-panel configurations
+#
+# Usage: lxqt-panel-switcher <mode>
+#
+# Modes:
+#   tworow         Top panel + sfwbar 2-row taskbar (default)
+#   classic        Bottom panel + sfwbar top statusbar
+#   minimal        Top panel (tray+clock) + sfwbar minimal bar
+#   standalone     Top panel handles everything (no sfwbar)
+#   dual-lxqt      Two lxqt-panels: top status + bottom taskbar (no sfwbar)
+#   vertical       Right-side vertical panel + sfwbar top statusbar
+#   bottom         Bottom panel + sfwbar top statusbar
+
+set -euo pipefail
+
+CYAN='\033[0;36m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+info()  { echo -e "${CYAN}==>${NC} $*"; }
+pass()  { echo -e "  ${GREEN}✓${NC} $*"; }
+warn()  { echo -e "  ${YELLOW}⚠${NC} $*"; }
+fail()  { echo -e "  ${RED}✗${NC} $*"; exit 1; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Resolve symlinks so SCRIPT_DIR points to the real repo scripts/ directory
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SOURCE")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Available lxqt-panel modes
+declare -A MODES=(
+    ["tworow"]="Top panel (menu, taskbar, tray, clock) + sfwbar 2-row taskbar"
+    ["classic"]="Bottom panel (dock-style) + sfwbar top statusbar"
+    ["minimal"]="Top panel (tray+clock only) + sfwbar minimal bar"
+    ["standalone"]="Top panel handles everything (no sfwbar)"
+    ["dual-lxqt"]="Two lxqt-panels: top status + bottom taskbar (no sfwbar)"
+    ["vertical"]="Right-side vertical panel + sfwbar top statusbar"
+    ["bottom"]="Bottom panel (full plugins) + sfwbar top statusbar"
+)
+
+# Sfwbar companion modes (empty = no sfwbar needed)
+declare -A SFWBAR_MODE=(
+    ["tworow"]="tworow"
+    ["classic"]="lxqt-classic"
+    ["minimal"]="lxqt-minimal"
+    ["standalone"]=""
+    ["dual-lxqt"]=""
+    ["vertical"]="lxqt-vertical"
+    ["bottom"]="lxqt-bottom"
+)
+
+# Show usage
+usage() {
+    echo "Usage: $0 <mode>"
+    echo ""
+    echo "Modes:"
+    for mode in tworow classic minimal standalone dual-lxqt vertical bottom; do
+        echo "  $mode  ${MODES[$mode]}"
+    done
+    exit 1
+}
+
+# Validate arguments
+if [ -z "${1:-}" ] || [ -z "${MODES[$1]+x}" ]; then
+    usage
+fi
+
+MODE="$1"
+LXQT_CONF_DST="$HOME/.config/lxqt/panel.conf"
+
+# Look for config in installed location first, then repo
+LXQT_CONF_SRC=""
+if [ -f "$HOME/.config/lxqt/modes/${MODE}.conf" ]; then
+    LXQT_CONF_SRC="$HOME/.config/lxqt/modes/${MODE}.conf"
+elif [ -f "$PROJECT_DIR/dotfiles/lxqt/modes/${MODE}.conf" ]; then
+    LXQT_CONF_SRC="$PROJECT_DIR/dotfiles/lxqt/modes/${MODE}.conf"
+fi
+
+# Validate source config exists
+if [ -z "$LXQT_CONF_SRC" ] || [ ! -f "$LXQT_CONF_SRC" ]; then
+    fail "Config not found: ${MODE}.conf (looked in ~/.config/lxqt/modes/ and repo)"
+fi
+
+info "Switching lxqt-panel to: $MODE"
+echo "  ${MODES[$MODE]}"
+
+# Kill existing lxqt-panel
+if pgrep -x lxqt-panel >/dev/null 2>&1; then
+    info "Stopping existing lxqt-panel..."
+    pkill -x lxqt-panel
+    # Wait for layer-shell surface release
+    for _ in $(seq 1 20); do
+        pgrep -x lxqt-panel >/dev/null 2>&1 || break
+        sleep 0.1
+    done
+    pass "lxqt-panel stopped."
+fi
+
+# Deploy the config
+info "Deploying panel configuration..."
+mkdir -p "$HOME/.config/lxqt"
+cp "$LXQT_CONF_SRC" "$LXQT_CONF_DST"
+pass "Config deployed: ${MODE}.conf → panel.conf"
+
+# Start lxqt-panel
+info "Starting lxqt-panel..."
+QT_WAYLAND_SHELL_INTEGRATION=layer-shell \
+  XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-labwc}:wlroots" \
+  nohup lxqt-panel -c "$LXQT_CONF_DST" >/dev/null 2>&1 &
+
+# Verify startup
+sleep 0.5
+if pgrep -x lxqt-panel >/dev/null 2>&1; then
+    pass "lxqt-panel started (mode: $MODE)"
+else
+    warn "lxqt-panel may not have started — check logs"
+fi
+
+# Report sfwbar companion
+SFWBAR="${SFWBAR_MODE[$MODE]}"
+if [ -n "$SFWBAR" ]; then
+    echo ""
+    info "Sfwbar companion: $SFWBAR.mode"
+    echo "  Start with: toggle-shell $MODE"
+    echo "  Or manually: sfwbar -f $HOME/.config/ocws/modes/${SFWBAR}.mode"
+else
+    echo ""
+    info "No sfwbar companion needed for this mode."
+fi
+
+echo ""
+pass "lxqt-panel mode set to: $MODE"

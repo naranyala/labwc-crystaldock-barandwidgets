@@ -1,6 +1,8 @@
 #Api2
 # dock-apps.widget — Pinned application launchers for dock
-# Each button launches an app and shows running state
+# Each button launches an app and shows running state.
+# Edit this file to customize which apps appear in the dock.
+# The expanded dock variant (dock-exp.widget) reads from sfwbar-dock.json.
 
 # --- Chromium Browser ---
 button {

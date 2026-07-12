@@ -1,21 +1,10 @@
 #Api2
 
 # Media Player — text-style display
-scanner {
-  step = 2000
-  exec("/bin/sh -c 'playerctl metadata --format artist 2>/dev/null || echo none'") { XMediaArtist = Grab(First) }
-  exec("/bin/sh -c 'playerctl metadata --format title 2>/dev/null || echo none'") { XMediaTitle = Grab(First) }
-  exec("/bin/sh -c 'playerctl metadata --format album 2>/dev/null || echo none'") { XMediaAlbum = Grab(First) }
-  exec("/bin/sh -c 'playerctl status 2>/dev/null || echo none'") { XMediaStatus = Grab(First) }
-  exec("/bin/sh -c 'playerctl position 2>/dev/null || echo 0'") { XMediaPosition = Grab(First) }
-  exec("/bin/sh -c 'playerctl metadata --format \"%(mpris:length)\" 2>/dev/null || echo 0'") {
-    XMediaLength = Grab(First)
-    XMediaPosFmt = If(Val(XMediaLength) > 0,
-      Str(Val(XMediaPosition)/60, 0) + ":" + Pad(Str(Val(XMediaPosition)%60, 0), 2, "0") +
-      " / " + Str(Val(XMediaLength)/1000000/60, 0) + ":" + Pad(Str(Val(XMediaLength)/1000000%60, 0), 2, "0"),
-      "")
-  }
-}
+# All metadata is pushed by ocws-daemon.sh (playerctl -F -> ocws-emit
+# Media.Title/Artist/Album/Status/Position/Length) via XMedia*.
+# No per-widget polling.
+# All CSS is in ocws.css — no widget-specific overrides needed.
 
 export button "media-player" {
   interval = 2000
@@ -24,7 +13,7 @@ export button "media-player" {
     If(XMediaArtist != "none", XMediaArtist + "\n", "") +
     If(XMediaTitle != "none", XMediaTitle + "\n", "") +
     If(XMediaAlbum != "none", "(" + XMediaAlbum + ")\n", "") +
-    XMediaStatus + If(XMediaPosFmt != "", "\n" + XMediaPosFmt, ""),
+    XMediaStatus + If(Val(XMediaLength) > 0, "\n" + Str(Val(XMediaPosition)/60, 0) + ":" + Pad(Str(Val(XMediaPosition)%60, 0), 2, "0") + " / " + Str(Val(XMediaLength)/1000000/60, 0) + ":" + Pad(Str(Val(XMediaLength)/1000000%60, 0), 2, "0"), ""),
     "No media playing")
   action = If(XMediaStatus = "Playing", Exec("playerctl pause"),
            If(XMediaStatus = "Paused", Exec("playerctl play"),
@@ -74,7 +63,7 @@ PopUp("MediaPopup") {
       label {
         style = "media_time_label"
         interval = 2000
-        value = If(XMediaPosFmt != "", XMediaPosFmt, "0:00")
+        value = If(Val(XMediaLength) > 0, Str(Val(XMediaPosition)/60, 0) + ":" + Pad(Str(Val(XMediaPosition)%60, 0), 2, "0") + " / " + Str(Val(XMediaLength)/1000000/60, 0) + ":" + Pad(Str(Val(XMediaLength)/1000000%60, 0), 2, "0"), "0:00")
       }
       scale {
         style = "media_seek_slider"
@@ -140,120 +129,6 @@ PopUp("MediaPopup") {
       }
     }
   }
-}
-
-#CSS
-/* ── Media Popup ─────────────────────────────────────────── */
-grid.media_popup_grid {
-  margin: 5px;
-  padding: 16px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background-color: rgba(30,30,46,0.92);
-  -GtkWidget-direction: bottom;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.65);
-  min-width: 300px;
-}
-
-image.media_album_art {
-  min-width: 200px;
-  min-height: 200px;
-  border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  -GtkWidget-halign: center;
-  -GtkWidget-hexpand: true;
-  margin-bottom: 12px;
-}
-
-label.media_track_title {
-  font-size: 14px;
-  font-weight: bold;
-  color: @theme_text_color;
-  -GtkWidget-halign: center;
-  -GtkWidget-hexpand: true;
-  padding-bottom: 2px;
-}
-
-label.media_track_artist {
-  font-size: 11px;
-  color: alpha(@theme_text_color, 0.7);
-  -GtkWidget-halign: center;
-  -GtkWidget-hexpand: true;
-  padding-bottom: 10px;
-}
-
-grid.media_progress_row {
-  -GtkWidget-direction: right;
-  -GtkWidget-hexpand: true;
-  margin-bottom: 8px;
-}
-
-label.media_time_label {
-  font-size: 10px;
-  color: alpha(@theme_text_color, 0.4);
-  font-family: monospace;
-  min-width: 80px;
-}
-
-scale.media_seek_slider {
-  -GtkWidget-hexpand: true;
-  margin: 0 8px;
-}
-
-grid.media_controls_row {
-  -GtkWidget-direction: right;
-  -GtkWidget-halign: center;
-  -GtkWidget-homogeneous: true;
-  margin-bottom: 10px;
-}
-
-button.media_ctrl_btn {
-  border-radius: 50%;
-  min-width: 36px;
-  min-height: 36px;
-  margin: 0 6px;
-  background-color: alpha(@surface2, 0.5);
-  color: @theme_text_color;
-}
-button.media_ctrl_btn:hover {
-  background-color: alpha(@surface2, 0.8);
-}
-
-button.media_ctrl_btn_primary {
-  border-radius: 50%;
-  min-width: 46px;
-  min-height: 46px;
-  margin: 0 6px;
-  background-color: alpha(@accent, 0.25);
-  color: @accent;
-  border: 1px solid alpha(@accent, 0.4);
-}
-button.media_ctrl_btn_primary:hover {
-  background-color: alpha(@accent, 0.4);
-}
-
-grid.media_volume_row {
-  -GtkWidget-direction: right;
-  -GtkWidget-hexpand: true;
-  margin-top: 4px;
-}
-
-label.media_vol_icon {
-  font-size: 14px;
-  color: alpha(@theme_text_color, 0.7);
-  min-width: 22px;
-}
-
-scale.media_vol_slider {
-  -GtkWidget-hexpand: true;
-  margin: 0 6px;
-}
-
-label.media_vol_pct {
-  font-size: 10px;
-  color: alpha(@theme_text_color, 0.4);
-  font-family: monospace;
-  min-width: 34px;
 }
 
 #CSS

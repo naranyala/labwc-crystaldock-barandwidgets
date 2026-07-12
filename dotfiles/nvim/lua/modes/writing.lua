@@ -71,5 +71,5 @@ return {
   },
 
   -- Word count in statusline
-  { "justincampbell/vim-wordcount", ft = { "markdown", "text", "tex" } },
+  -- { "justincampbell/vim-wordcount", ft = { "markdown", "text", "tex" } },
 }

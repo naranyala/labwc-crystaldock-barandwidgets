@@ -1,4 +1,4 @@
-  widget "media-player"
-  widget "clock"
-  widget "ocws-control-center"
+  widget "widgets/media/media-player.widget"
+  widget "widgets/core/clock.widget"
+  widget "widgets/popups/ocws-control-center.widget"
   include("widgets/core/tray.widget")

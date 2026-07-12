@@ -1,0 +1,17 @@
+#Api2
+# compact.mode — Single bar with integrated taskbar + dock icons
+# Launch: sfwbar -f modes/compact.mode
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Compact Bar ---
+bar "compactbar:top" {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+  exclusive_zone = "auto"
+  size = 36
+
+  include("../widget-sets/compact.set")
+}

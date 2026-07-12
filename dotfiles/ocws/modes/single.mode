@@ -1,0 +1,17 @@
+#Api2
+# single.mode — Single statusbar (all-in-one top bar)
+# Launch: sfwbar -f modes/single.mode
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Bar ---
+bar "statusbar:top" {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+  exclusive_zone = "auto"
+  size = $OCWS_BAR_THICKNESS
+
+  include("../widget-sets/single.set")
+}

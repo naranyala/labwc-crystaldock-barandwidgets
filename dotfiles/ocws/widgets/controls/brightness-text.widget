@@ -1,16 +1,9 @@
 #Api2
 
-# Brightness text widget — shows backlight percentage
-scanner {
-  step = 2000
-  exec("ocws-brightness get") {
-    XBrightRaw = Grab(First)
-    XBrightness = Val(Extract(XBrightRaw, "BRIGHTNESS=([0-9]+)"))
-  }
-}
+# Brightness is pushed by ocws-daemon.sh (inotifywait on backlight ->
+# ocws-emit System.Brightness) via XBrightness. No per-widget polling.
 
 export button "brightness-text" {
-  interval = 2000
   style = "text_widget"
   tooltip = "Brightness: " + Str(XBrightness, 0) + "%"
   action = Exec("ocws-brightness up")

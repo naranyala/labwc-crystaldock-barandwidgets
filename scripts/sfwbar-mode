@@ -27,9 +27,13 @@ info() { echo -e "${CYAN}→${NC} $1"; }
 
 # Available modes
 declare -A MODES=(
-    ["doublepanel"]="Dual-panel mode (top status bar + bottom dock/taskbar)"
-    ["crystaldock"]="Single status bar + external crystal-dock"
+    ["dual"]="Dual-panel mode (top status bar + bottom dock/taskbar)"
+    ["single"]="Single statusbar (all-in-one top bar)"
     ["minimal"]="Minimal status bar (clock, volume, battery, tray)"
+    ["compact"]="Single bar with integrated taskbar + dock icons"
+    ["island"]="Dynamic island bar (requires patched sfwbar)"
+    ["desktop"]="Desktop widgets only, no status bars"
+    ["crystaldock"]="Single status bar + external crystal-dock (legacy)"
 )
 
 # ============================================================
@@ -49,7 +53,7 @@ show_modes() {
 validate_mode() {
     local mode="$1"
     local config_file="$OCWS_DIR/modes/${mode}.mode"
-    
+
     if [[ ! -f "$config_file" ]]; then
         fail "Mode config not found: $config_file"
         return 1
@@ -76,29 +80,45 @@ get_current_mode() {
 
 start_sfwbar() {
     local mode="$1"
-    local config_file="$OCWS_DIR/modes/${mode}.mode"
-    
+
     # Kill existing sfwbar
     if pgrep -x sfwbar >/dev/null 2>&1; then
         info "Stopping existing sfwbar..."
         pkill -x sfwbar
         sleep 0.3
     fi
-    
-    # Copy config to user dir if needed
-    mkdir -p "$CONFIG_DIR/modes"
-    cp -r "$OCWS_DIR/modes/"* "$CONFIG_DIR/modes/" 2>/dev/null || true
-    
-    # Start sfwbar with the mode config
+
+    # Preserve user.config if it exists
+    local user_config_backup=""
+    if [[ -f "$CONFIG_DIR/user.config" ]]; then
+        user_config_backup=$(mktemp)
+        cp "$CONFIG_DIR/user.config" "$user_config_backup"
+    fi
+
+    # Copy full OCWS config tree to user dir
+    # This ensures all includes (widgets, css, bars, modes) resolve correctly
+    mkdir -p "$CONFIG_DIR"
+    cp -r "$OCWS_DIR/." "$CONFIG_DIR/" 2>/dev/null || true
+
+    # Restore user.config if it was backed up
+    if [[ -n "$user_config_backup" && -f "$user_config_backup" ]]; then
+        cp "$user_config_backup" "$CONFIG_DIR/user.config"
+        rm -f "$user_config_backup"
+    fi
+
+    # Start sfwbar with the mode config from user dir
+    # sfwbar resolves includes relative to CWD when using relative paths
+    local config_file="modes/${mode}.mode"
+    local css_file="ocws-theme.css"
     info "Starting sfwbar in $mode mode..."
-    info "Config: $config_file"
-    
-    sfwbar -c "$config_file" &
+    info "Config: $CONFIG_DIR/$config_file"
+    info "CSS: $CONFIG_DIR/$css_file"
+
+    (cd "$CONFIG_DIR" && sfwbar -f "$config_file" -c "$css_file") &
     echo $! > "$PID_FILE"
     pass "sfwbar started (PID: $!)"
-    
+
     # Save current mode
-    mkdir -p "$(dirname "$CONFIG_DIR/mode")"
     echo "$mode" > "$CONFIG_DIR/mode"
     pass "Mode saved: $mode"
 }
@@ -141,8 +161,9 @@ show_help() {
     echo "  validate       Validate all modes"
     echo ""
     echo "Examples:"
-    echo "  $(basename "$0") start doublepanel"
-    echo "  $(basename "$0") start crystaldock"
+    echo "  $(basename "$0") start dual"
+    echo "  $(basename "$0") start single"
+    echo "  $(basename "$0") start compact"
     echo "  $(basename "$0") start minimal"
     echo "  $(basename "$0") stop"
     echo "  $(basename "$0") status"

@@ -1,0 +1,30 @@
+#Api2
+# lxqt-minimal.mode — Minimal top bar for minimal mode
+# Paired with lxqt-panel top (minimal.conf) which handles tray+clock
+# Launch: sfwbar -f modes/lxqt-minimal.mode
+
+switcher { disable = true }
+
+# --- Common Infrastructure ---
+include("../ocws.config")
+
+# --- Minimal Top Bar ---
+bar "statusbar:top" {
+  edge = "top"
+  layer = "top"
+  mirror = "*"
+  exclusive_zone = "auto"
+  size = 28
+
+  # --- Left: Launcher ---
+  widget "widgets/core/launcher.widget"
+
+  # --- Center: Workspaces ---
+  widget "widgets/core/workspaces.widget"
+
+  # --- Center: Spacer ---
+  label { css = "* { -GtkWidget-hexpand: true; }" }
+
+  # --- Right: Control Center ---
+  widget "widgets/popups/ocws-control-center.widget"
+}

@@ -1,0 +1,14 @@
+# Minimal widget set — essential status widgets only
+# Launcher, clock, volume, battery, tray
+
+widget "widgets/core/launcher.widget"
+
+# Center: Clock
+label { css = "* { -GtkWidget-hexpand: true; }" }
+widget "widgets/core/clock.widget"
+label { css = "* { -GtkWidget-hexpand: true; }" }
+
+# Right: Essential Status
+widget "widgets/controls/volume-text.widget"
+widget "widgets/system/battery-text.widget"
+include("widgets/core/tray.widget")

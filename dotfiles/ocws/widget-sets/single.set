@@ -1,0 +1,20 @@
+# Single bar widget set — all-in-one top bar
+# Launcher, workspaces, clock (centered), status, controls
+
+# --- Left: Launcher + Workspaces ---
+widget "widgets/core/launcher.widget"
+widget "widgets/core/workspaces.widget"
+
+# --- Center: Clock (prominent) ---
+label { css = "* { -GtkWidget-hexpand: true; }" }
+widget "widgets/core/clock.widget"
+label { css = "* { -GtkWidget-hexpand: true; }" }
+
+# --- Right: System Status + Controls ---
+widget "widgets/media/media-player.widget"
+widget "widgets/controls/volume-text.widget"
+widget "widgets/controls/brightness-text.widget"
+widget "widgets/system/battery-text.widget"
+widget "widgets/controls/bluetooth.widget"
+include("widgets/core/tray.widget")
+widget "widgets/popups/ocws-control-center.widget"

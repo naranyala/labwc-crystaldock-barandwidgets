@@ -1,0 +1,17 @@
+# Taskbar widget set — running windows in bar
+# Include this set to add the taskbar to a bar
+
+taskbar {
+  style = "taskbar"
+  rows = 1
+  icons = true
+  labels = false
+  tooltips = true
+  icon_size = 28
+  sort = false
+  title_width = 20
+  action[Drag] = Focus()
+  action[RightClick] = Menu("winops")
+  action[MiddleClick] = Close()
+  css = "* { -GtkWidget-hexpand: true; -GtkWidget-halign: center; }"
+}
