@@ -145,6 +145,12 @@ pub const BlendRenderer = struct {
         _ = c.bl_font_set_size(&self.font, @floatCast(size));
     }
 
+    /// Flush all pending Blend2D operations to the pixel buffer.
+    /// Must be called after all drawing is done and before submitting to Wayland.
+    pub fn flush(self: *BlendRenderer) void {
+        _ = c.bl_context_flush(&self.ctx, @as(c_uint, 0x01)); // BL_CONTEXT_FLUSH_SYNC
+    }
+
     pub fn fillRect(self: *BlendRenderer, x: f64, y: f64, w: f64, h: f64, color: u32) void {
         const rect = c.BLRect{ .x = x, .y = y, .w = w, .h = h };
         _ = c.bl_context_set_fill_style_rgba32(&self.ctx, color);

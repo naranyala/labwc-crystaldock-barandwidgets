@@ -589,6 +589,9 @@ fn renderPanel() void {
     if (settings_open) {
         drawSettingsMenu(&renderer, w, h);
     }
+
+    // Flush Blend2D operations to the pixel buffer
+    renderer.flush();
 }
 
 fn drawSettingsButton(renderer: *blend2d.BlendRenderer, w: i32, h: i32) void {
@@ -651,6 +654,9 @@ fn renderDock() void {
     if (dock_ctx_menu_open) {
         drawDockContextMenu(&renderer);
     }
+
+    // Flush Blend2D operations to the pixel buffer
+    renderer.flush();
 }
 
 fn drawDockContextMenu(renderer: *blend2d.BlendRenderer) void {
