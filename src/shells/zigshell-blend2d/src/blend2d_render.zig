@@ -1,5 +1,5 @@
 // blend2d_render.zig — Blend2D rendering abstraction for Wayland SHM buffers
-// Renders directly to an external pixel buffer (the mmap'd SHM buffer).
+// Renders to an internal Blend2D image, then copies pixels to the SHM buffer.
 
 const std = @import("std");
 const c = @import("c.zig").c;
@@ -14,8 +14,10 @@ pub const BlendRenderer = struct {
     ctx: c.BLContextCore,
     font_face: c.BLFontFaceCore,
     font: c.BLFontCore,
+    shm_data: ?[*]u8 = null,
     buf_width: i32 = 0,
     buf_height: i32 = 0,
+    stride: i32 = 0,
     initialized: bool = false,
     font_loaded: bool = false,
 
@@ -28,23 +30,20 @@ pub const BlendRenderer = struct {
         };
         self.buf_width = width;
         self.buf_height = height;
+        self.stride = stride_bytes;
+        self.shm_data = pixel_data;
 
-        // Create BLImage backed by external pixel data (zero-copy)
-        // BL_FORMAT_PRGB32 = 1
-        const result = c.bl_image_init_as_from_data(
+        // Create a regular Blend2D image (internal buffer, NOT external data)
+        // We render to this, then copy pixels to SHM
+        const result = c.bl_image_init_as(
             &self.image,
             @intCast(width),
             @intCast(height),
             @as(c_uint, c.BL_FORMAT_PRGB32),
-            @ptrCast(pixel_data),
-            @intCast(stride_bytes),
-            @as(c_uint, 0x01), // BL_DATA_ACCESS_WRITE
-            null,
-            null,
         );
         if (result != @as(c_uint, c.BL_SUCCESS)) return error.Blend2DError;
 
-        // Create rendering context
+        // Create rendering context targeting the internal image
         const ctx_result = c.bl_context_init_as(&self.ctx, &self.image, null);
         if (ctx_result != @as(c_uint, c.BL_SUCCESS)) return error.Blend2DError;
 
@@ -133,8 +132,6 @@ pub const BlendRenderer = struct {
 
     pub fn loadRegularFont(self: *BlendRenderer) void {
         _ = self;
-        // Reload the default font (regular weight)
-        // This is a simplified version — in production you'd cache the regular face
     }
 
     pub fn font_size(self: *BlendRenderer) f64 {
@@ -145,10 +142,32 @@ pub const BlendRenderer = struct {
         _ = c.bl_font_set_size(&self.font, @floatCast(size));
     }
 
-    /// Flush all pending Blend2D operations to the pixel buffer.
-    /// Must be called after all drawing is done and before submitting to Wayland.
+    /// Flush Blend2D operations and copy rendered pixels to the SHM buffer.
     pub fn flush(self: *BlendRenderer) void {
+        // Flush Blend2D's internal rendering pipeline
         _ = c.bl_context_flush(&self.ctx, @as(c_uint, 0x01)); // BL_CONTEXT_FLUSH_SYNC
+
+        // Copy pixels from Blend2D's internal image to the SHM buffer
+        if (self.shm_data) |shm| {
+            var img_data = std.mem.zeroes(c.BLImageData);
+            const mutable_result = c.bl_image_make_mutable(&self.image, &img_data);
+            if (mutable_result == @as(c_uint, c.BL_SUCCESS)) {
+                const src: [*]const u8 = @ptrCast(img_data.pixel_data);
+                const src_stride: usize = @intCast(if (img_data.stride < 0) -img_data.stride else img_data.stride);
+                const dst: [*]u8 = shm;
+                const dst_stride: usize = @intCast(self.stride);
+                // Use actual pixel data width (not stride) for copy — strides may differ
+                const row_bytes: usize = @as(usize, @intCast(self.buf_width)) * 4;
+
+                const rows: usize = @intCast(self.buf_height);
+                var row: usize = 0;
+                while (row < rows) : (row += 1) {
+                    const s = src + row * src_stride;
+                    const d = dst + row * dst_stride;
+                    @memcpy(d[0..row_bytes], s[0..row_bytes]);
+                }
+            }
+        }
     }
 
     pub fn fillRect(self: *BlendRenderer, x: f64, y: f64, w: f64, h: f64, color: u32) void {
@@ -169,16 +188,11 @@ pub const BlendRenderer = struct {
         _ = c.bl_glyph_buffer_init(&gb);
         defer _ = c.bl_glyph_buffer_destroy(&gb);
 
-        // Set text (UTF8 = 0)
         _ = c.bl_glyph_buffer_set_text(&gb, text.ptr, text.len, @as(c_uint, 0));
-
-        // Shape
         _ = c.bl_font_shape(&self.font, &gb);
 
-        // Get glyph run
         const glyph_run = c.bl_glyph_buffer_get_glyph_run(&gb);
 
-        // Draw glyphs
         const origin = c.BLPoint{ .x = x, .y = y };
         _ = c.bl_context_set_fill_style_rgba32(&self.ctx, color);
         _ = c.bl_context_fill_glyph_run_d(&self.ctx, &origin, &self.font, glyph_run);
@@ -208,26 +222,18 @@ pub const BlendRenderer = struct {
         _ = c.bl_context_blit_image_d(&self.ctx, &origin, img, null);
     }
 
-    pub fn drawImageScaled(self: *BlendRenderer, img: *c.BLImageCore, x: f64, y: f64, w: f64, h: f64) void {
-        const rect = c.BLRect{ .x = x, .y = y, .w = w, .h = h };
-        _ = c.bl_context_blit_scaled_image_d(&self.ctx, &rect, img, null);
-    }
-
     pub fn drawCircle(self: *BlendRenderer, cx: f64, cy: f64, radius: f64, color: u32) void {
         var path = std.mem.zeroes(c.BLPathCore);
         _ = c.bl_path_init(&path);
         defer _ = c.bl_path_destroy(&path);
 
-        // Approximate circle with bezier curves (4 arcs)
         const kappa = 0.5522847498;
-        const kx = cx + radius * kappa;
-        const ky = cy + radius * kappa;
 
         _ = c.bl_path_move_to(&path, cx + radius, cy);
-        _ = c.bl_path_cubic_to(&path, kx, cy + radius, cx + radius, ky, cx + radius, cy + radius);
-        _ = c.bl_path_cubic_to(&path, cx, cy + radius * (1 + kappa), cx - radius * (1 + kappa), cy, cx - radius, cy);
-        _ = c.bl_path_cubic_to(&path, cx - radius * (1 + kappa), cy - radius, cx, cy - radius * (1 - kappa), cx, cy - radius);
-        _ = c.bl_path_cubic_to(&path, cx, cy - radius * (1 + kappa), cx + radius * (1 + kappa), cy, cx + radius, cy);
+        _ = c.bl_path_cubic_to(&path, cx + radius, cy + radius * kappa, cx + radius * kappa, cy + radius, cx, cy + radius);
+        _ = c.bl_path_cubic_to(&path, cx - radius * kappa, cy + radius, cx - radius, cy + radius * kappa, cx - radius, cy);
+        _ = c.bl_path_cubic_to(&path, cx - radius, cy - radius * kappa, cx - radius * kappa, cy - radius, cx, cy - radius);
+        _ = c.bl_path_cubic_to(&path, cx + radius * kappa, cy - radius, cx + radius, cy - radius * kappa, cx + radius, cy);
         _ = c.bl_path_close(&path);
 
         _ = c.bl_context_set_fill_style_rgba32(&self.ctx, color);
