@@ -46,6 +46,40 @@ const ICON_CACHE_MAX = 64;
 var icon_cache: [ICON_CACHE_MAX]CacheEntry = std.mem.zeroes([ICON_CACHE_MAX]CacheEntry);
 var icon_cache_count: i32 = 0;
 
+// Separate cache for generated fallback icons (keyed by app_id) so the dock
+// doesn't regenerate + leak a BLImage every frame for apps without icons.
+var fb_cache: [ICON_CACHE_MAX]CacheEntry = std.mem.zeroes([ICON_CACHE_MAX]CacheEntry);
+var fb_cache_count: i32 = 0;
+
+// Lazily-loaded font face for drawing the fallback letter.
+const fallback_font_paths = [_][]const u8{
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
+    "/usr/share/fonts/gnu-free/FreeSans.ttf",
+};
+var fb_face: c.BLFontFaceCore = std.mem.zeroes(c.BLFontFaceCore);
+var fb_face_ok = false;
+var fb_face_tried = false;
+
+fn ensureFallbackFace() bool {
+    if (fb_face_tried) return fb_face_ok;
+    fb_face_tried = true;
+    for (fallback_font_paths) |path| {
+        var pb: [256:0]u8 = undefined;
+        const pz = std.fmt.bufPrintZ(&pb, "{s}", .{path}) catch continue;
+        if (c.bl_font_face_create_from_file(&fb_face, pz.ptr, @as(c_int, 0)) == @as(c_uint, c.BL_SUCCESS)) {
+            fb_face_ok = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 pub fn clearCache() void {
     for (0..@intCast(icon_cache_count)) |i| {
         if (icon_cache[i].img) |*img| {
@@ -53,6 +87,12 @@ pub fn clearCache() void {
         }
     }
     icon_cache_count = 0;
+    for (0..@intCast(fb_cache_count)) |i| {
+        if (fb_cache[i].img) |*img| {
+            _ = c.bl_image_destroy(img);
+        }
+    }
+    fb_cache_count = 0;
 }
 
 fn pathExists(path: [*:0]const u8) bool {
@@ -205,7 +245,7 @@ fn tryLoadPng(icon_name: [*:0]const u8) ?c.BLImageCore {
         const buf_ptr: [*:0]const u8 = @ptrCast(&buf);
         var img = std.mem.zeroes(c.BLImageCore);
         if (c.bl_image_read_from_file(&img, buf_ptr, null) == @as(c_uint, c.BL_SUCCESS)) return img;
-        _ = c.bl_image_destroy(&img);
+        // Don't destroy — image was never successfully initialized
     }
 
     // Try sized directories
@@ -216,14 +256,24 @@ fn tryLoadPng(icon_name: [*:0]const u8) ?c.BLImageCore {
             const buf_ptr: [*:0]const u8 = @ptrCast(&buf);
             var img = std.mem.zeroes(c.BLImageCore);
             if (c.bl_image_read_from_file(&img, buf_ptr, null) == @as(c_uint, c.BL_SUCCESS)) return img;
-            _ = c.bl_image_destroy(&img);
+            // Don't destroy — image was never successfully initialized
         }
     }
     return null;
 }
 
+// SVG loading deferred — requires plutosvg integration (Phase 2)
+// fn svgToBLImage(path: [*:0]const u8, size: i32) ?c.BLImageCore { ... }
+// fn tryLoadSvg(icon_name: [*:0]const u8, size: i32) ?c.BLImageCore { ... }
+
+fn tryLoad(icon_name: [*:0]const u8, size: i32) ?c.BLImageCore {
+    _ = size;
+    if (tryLoadPng(icon_name)) |img| return img;
+    // SVG loading deferred (Phase 2)
+    return null;
+}
+
 pub fn load(app_id: [*:0]const u8, size: i32) ?c.BLImageCore {
-    _ = size; // Blend2D handles scaling at draw time
     const app_id_slice = std.mem.sliceTo(app_id, 0);
 
     // Check cache first
@@ -241,7 +291,7 @@ pub fn load(app_id: [*:0]const u8, size: i32) ?c.BLImageCore {
         }
     }
 
-    var img = tryLoadPng(icon_name_ptr);
+    var img = tryLoad(icon_name_ptr, size);
     if (img) |loaded| {
         cacheIcon(app_id_slice, loaded);
         return loaded;
@@ -249,7 +299,7 @@ pub fn load(app_id: [*:0]const u8, size: i32) ?c.BLImageCore {
 
     // Try app_id directly
     if (icon_name_ptr != app_id) {
-        img = tryLoadPng(app_id);
+        img = tryLoad(app_id, size);
         if (img) |loaded| {
             cacheIcon(app_id_slice, loaded);
             return loaded;
@@ -277,7 +327,26 @@ fn hueForString(s: []const u8) f64 {
     return @as(f64, @floatFromInt(@mod(h, 360))) / 360.0;
 }
 
+fn cacheFallback(app_id: []const u8, img: c.BLImageCore) void {
+    if (fb_cache_count >= ICON_CACHE_MAX) return;
+    const idx: usize = @intCast(fb_cache_count);
+    fb_cache_count += 1;
+    const len = @min(app_id.len, 127);
+    @memcpy(fb_cache[idx].app_id[0..len], app_id[0..len]);
+    fb_cache[idx].app_id[len] = 0;
+    fb_cache[idx].img = img;
+}
+
 pub fn fallback(app_id: [*:0]const u8, size: i32) c.BLImageCore {
+    const app_id_slice = std.mem.sliceTo(app_id, 0);
+
+    // Reuse a previously generated fallback for this app_id (avoids per-frame leak).
+    for (0..@intCast(fb_cache_count)) |i| {
+        if (std.mem.eql(u8, &fb_cache[i].app_id, app_id_slice)) {
+            if (fb_cache[i].img) |cached| return cached;
+        }
+    }
+
     // Create a colored circle with first letter as fallback icon
     var img = std.mem.zeroes(c.BLImageCore);
     _ = c.bl_image_init_as(&img, @intCast(size), @intCast(size), @as(c_uint, c.BL_FORMAT_PRGB32));
@@ -285,7 +354,6 @@ pub fn fallback(app_id: [*:0]const u8, size: i32) c.BLImageCore {
     var ctx = std.mem.zeroes(c.BLContextCore);
     _ = c.bl_context_init_as(&ctx, &img, null);
 
-    const app_id_slice = std.mem.sliceTo(app_id, 0);
     const hue = hueForString(app_id_slice);
 
     // HSV to RGB
@@ -346,6 +414,7 @@ pub fn fallback(app_id: [*:0]const u8, size: i32) c.BLImageCore {
         // Try to load a font for the letter
         var font_face = std.mem.zeroes(c.BLFontFaceCore);
         var font = std.mem.zeroes(c.BLFontCore);
+        var font_loaded = false;
         const font_paths = [_][]const u8{
             "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
             "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
@@ -367,17 +436,20 @@ pub fn fallback(app_id: [*:0]const u8, size: i32) c.BLImageCore {
 
                 _ = c.bl_font_destroy(&font);
                 _ = c.bl_font_face_destroy(&font_face);
+                font_loaded = true;
                 break;
             }
         }
 
-        _ = c.bl_font_face_destroy(&font_face);
-        _ = c.bl_font_destroy(&font);
+        // Only destroy if not already destroyed in the loop
+        // Note: zeroed-out BLFontFaceCore/BLFontCore should NOT be destroyed
+        // — they were never initialized, so destroying them crashes.
         _ = c.bl_glyph_buffer_destroy(&gb);
     }
 
     _ = c.bl_context_end(&ctx);
     _ = c.bl_context_destroy(&ctx);
 
+    cacheFallback(app_id_slice, img);
     return img;
 }

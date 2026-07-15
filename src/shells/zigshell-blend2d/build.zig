@@ -43,6 +43,38 @@ pub fn build(b: *std.Build) void {
     root_mod.addIncludePath(b.path("src"));
     root_mod.addIncludePath(b.path("."));
     root_mod.addIncludePath(b.path("deps/blend2d"));
+    root_mod.addIncludePath(b.path("deps/plutovg/include"));
+    root_mod.addIncludePath(b.path("deps/plutosvg/source"));
+
+    // Build plutosvg + plutovg sources directly into the shell (both are
+    // glib-free, like Blend2D). They share plutonium-internal APIs, so we
+    // declare the static-build macros so the headers expose them plainly.
+    const svg_c_flags = [_][]const u8{
+        "-std=gnu11",
+        "-Wall",
+        "-DPLUTOSVG_BUILD_STATIC",
+        "-DPLUTOVG_BUILD_STATIC",
+    };
+    const plutovg_sources = [_][]const u8{
+        "deps/plutovg/source/plutovg-blend.c",
+        "deps/plutovg/source/plutovg-canvas.c",
+        "deps/plutovg/source/plutovg-font.c",
+        "deps/plutovg/source/plutovg-matrix.c",
+        "deps/plutovg/source/plutovg-paint.c",
+        "deps/plutovg/source/plutovg-path.c",
+        "deps/plutovg/source/plutovg-rasterize.c",
+        "deps/plutovg/source/plutovg-surface.c",
+        "deps/plutovg/source/plutovg-ft-math.c",
+        "deps/plutovg/source/plutovg-ft-raster.c",
+        "deps/plutovg/source/plutovg-ft-stroker.c",
+    };
+    for (plutovg_sources) |src| {
+        root_mod.addCSourceFile(.{ .file = b.path(src), .flags = &svg_c_flags });
+    }
+    root_mod.addCSourceFile(.{
+        .file = b.path("deps/plutosvg/source/plutosvg.c"),
+        .flags = &svg_c_flags,
+    });
 
     // Link Blend2D
     root_mod.addLibraryPath(b.path("build/deps/blend2d"));

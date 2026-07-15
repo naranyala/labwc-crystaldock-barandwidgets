@@ -17,6 +17,7 @@ pub const BlendRenderer = struct {
     buf_width: i32 = 0,
     buf_height: i32 = 0,
     initialized: bool = false,
+    font_loaded: bool = false,
 
     pub fn init(pixel_data: [*]u8, width: i32, height: i32, stride_bytes: i32) !BlendRenderer {
         var self = BlendRenderer{
@@ -58,8 +59,10 @@ pub const BlendRenderer = struct {
         if (!self.initialized) return;
         _ = c.bl_context_end(&self.ctx);
         _ = c.bl_context_destroy(&self.ctx);
-        _ = c.bl_font_destroy(&self.font);
-        _ = c.bl_font_face_destroy(&self.font_face);
+        if (self.font_loaded) {
+            _ = c.bl_font_destroy(&self.font);
+            _ = c.bl_font_face_destroy(&self.font_face);
+        }
         _ = c.bl_image_destroy(&self.image);
         self.initialized = false;
     }
@@ -94,7 +97,10 @@ pub const BlendRenderer = struct {
             const face_result = c.bl_font_face_create_from_file(&self.font_face, path_z.ptr, @as(c_int, 0));
             if (face_result == @as(c_uint, c.BL_SUCCESS)) {
                 const font_result = c.bl_font_create_from_face(&self.font, &self.font_face, 11.0);
-                if (font_result == @as(c_uint, c.BL_SUCCESS)) return;
+                if (font_result == @as(c_uint, c.BL_SUCCESS)) {
+                    self.font_loaded = true;
+                    return;
+                }
             }
         }
 
@@ -194,6 +200,11 @@ pub const BlendRenderer = struct {
     pub fn drawImage(self: *BlendRenderer, img: *c.BLImageCore, x: f64, y: f64) void {
         const origin = c.BLPoint{ .x = x, .y = y };
         _ = c.bl_context_blit_image_d(&self.ctx, &origin, img, null);
+    }
+
+    pub fn drawImageScaled(self: *BlendRenderer, img: *c.BLImageCore, x: f64, y: f64, w: f64, h: f64) void {
+        const rect = c.BLRect{ .x = x, .y = y, .w = w, .h = h };
+        _ = c.bl_context_blit_scaled_image_d(&self.ctx, &rect, img, null);
     }
 
     pub fn drawCircle(self: *BlendRenderer, cx: f64, cy: f64, radius: f64, color: u32) void {

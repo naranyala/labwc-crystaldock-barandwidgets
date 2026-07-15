@@ -62,9 +62,15 @@ pub fn draw(
             );
         }
 
-        // Draw the icon
+        // Draw the icon (scaled to the dock icon size)
         var loaded_icon = icon_img;
-        renderer.drawImage(&loaded_icon, @floatFromInt(x), @floatFromInt(icon_y));
+        renderer.drawImageScaled(
+            &loaded_icon,
+            @floatFromInt(x),
+            @floatFromInt(icon_y),
+            @floatFromInt(DOCK_ICON_SIZE),
+            @floatFromInt(DOCK_ICON_SIZE),
+        );
 
         // Focus indicator bar
         if (tops[i].focused) {
