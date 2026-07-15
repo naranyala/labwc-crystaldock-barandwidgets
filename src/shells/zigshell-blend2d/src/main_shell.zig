@@ -184,6 +184,9 @@ fn registryGlobal(data: ?*anyopaque, reg: ?*c.wl_registry, name: u32, iface: [*c
     } else if (std.mem.eql(u8, iface_str, "wl_seat")) {
         seat = @ptrCast(c.wl_registry_bind(reg, name, &c.wl_seat_interface, 7));
         _ = c.wl_seat_add_listener(seat, &seat_listener, null);
+    } else if (std.mem.eql(u8, iface_str, "wl_output")) {
+        const out: ?*c.wl_output = @ptrCast(c.wl_registry_bind(reg, name, &c.wl_output_interface, 2));
+        _ = c.wl_output_add_listener(out, &output_listener, null);
     }
 }
 
@@ -542,6 +545,75 @@ const surface_listener = c.wl_surface_listener{
     .preferred_buffer_transform = struct {
         fn f(_: ?*anyopaque, _: ?*c.wl_surface, _: u32) callconv(.c) void {}
     }.f,
+};
+
+// ---- multi-monitor (wl_output) tracking ----
+const OutputInfo = struct {
+    output: ?*c.wl_output = null,
+    name: [64]u8 = std.mem.zeroes([64]u8),
+    x: i32 = 0,
+    y: i32 = 0,
+    w: i32 = 0,
+    h: i32 = 0,
+    scale: i32 = 1,
+    present: bool = false,
+};
+
+var outputs: [16]OutputInfo = std.mem.zeroes([16]OutputInfo);
+var output_count: usize = 0;
+
+fn findOrAddOutput(out: ?*c.wl_output) *OutputInfo {
+    for (&outputs) |*o| {
+        if (o.output == out) return o;
+    }
+    if (output_count < outputs.len) {
+        const o = &outputs[output_count];
+        output_count += 1;
+        o.output = out;
+        return o;
+    }
+    return &outputs[0];
+}
+
+fn outputGeometry(_: ?*anyopaque, out: ?*c.wl_output, x: i32, y: i32, _: i32, _: i32, _: i32, _: ?[*:0]const u8, _: ?[*:0]const u8, _: i32) callconv(.c) void {
+    const o = findOrAddOutput(out);
+    o.x = x;
+    o.y = y;
+}
+
+fn outputMode(_: ?*anyopaque, out: ?*c.wl_output, _: u32, w: i32, h: i32, _: i32) callconv(.c) void {
+    const o = findOrAddOutput(out);
+    o.w = w;
+    o.h = h;
+}
+
+fn outputScale(_: ?*anyopaque, out: ?*c.wl_output, factor: i32) callconv(.c) void {
+    const o = findOrAddOutput(out);
+    o.scale = factor;
+}
+
+fn outputName(_: ?*anyopaque, out: ?*c.wl_output, name: ?[*:0]const u8) callconv(.c) void {
+    if (name == null) return;
+    const o = findOrAddOutput(out);
+    const n = std.mem.sliceTo(name.?, 0);
+    const len = @min(n.len, o.name.len - 1);
+    @memcpy(o.name[0..len], n[0..len]);
+    o.name[len] = 0;
+}
+
+fn outputDone(_: ?*anyopaque, out: ?*c.wl_output) callconv(.c) void {
+    const o = findOrAddOutput(out);
+    o.present = true;
+    std.log.info("zigshell-blend2d: output {s}: {d}x{d} @ scale {d} pos ({d},{d})", .{ o.name, o.w, o.h, o.scale, o.x, o.y });
+}
+
+const output_listener = c.wl_output_listener{
+    .geometry = outputGeometry,
+    .mode = outputMode,
+    .done = outputDone,
+    .scale = outputScale,
+    .name = outputName,
+    .description = struct { fn f(_: ?*anyopaque, _: ?*c.wl_output, _: ?[*:0]const u8) callconv(.c) void {} }.f,
 };
 
 // ==== LIVE CONFIG RELOAD (SIGHUP) ====

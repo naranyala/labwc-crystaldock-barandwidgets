@@ -204,9 +204,42 @@ pub fn build(b: *std.Build) void {
         .file = b.path("src/blend2d_render.c"),
         .flags = &.{ "-std=gnu11", "-Wall" },
     });
+    icon_mod.addCSourceFile(.{
+        .file = b.path("src/icon.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
     const icon_tests = b.addTest(.{ .root_module = icon_mod });
     const run_icon_tests = b.addRunArtifact(icon_tests);
     run_icon_tests.step.dependOn(&cmake_build.step);
+
+    // Panel draw tests (C functions)
+    const panel_draw_mod = b.createModule(.{
+        .root_source_file = b.path("src/panel_draw_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    panel_draw_mod.addIncludePath(b.path("src"));
+    panel_draw_mod.addIncludePath(b.path("."));
+    panel_draw_mod.addIncludePath(b.path("deps/blend2d"));
+    panel_draw_mod.addLibraryPath(b.path("build/deps/blend2d"));
+    panel_draw_mod.linkSystemLibrary("blend2d", .{});
+    panel_draw_mod.linkSystemLibrary("stdc++", .{});
+    panel_draw_mod.addCSourceFile(.{
+        .file = b.path("src/dock_c_impl.c"),
+        .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
+    });
+    panel_draw_mod.addCSourceFile(.{
+        .file = b.path("src/blend2d_render.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
+    panel_draw_mod.addCSourceFile(.{
+        .file = b.path("src/panel_draw.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
+    const panel_draw_tests = b.addTest(.{ .root_module = panel_draw_mod });
+    const run_panel_draw_tests = b.addRunArtifact(panel_draw_tests);
+    run_panel_draw_tests.step.dependOn(&cmake_build.step);
 
     // ============================================================
     // Test steps
@@ -219,6 +252,7 @@ pub fn build(b: *std.Build) void {
     test_all.dependOn(&run_panel_tests.step);
     test_all.dependOn(&run_render_tests.step);
     test_all.dependOn(&run_icon_tests.step);
+    test_all.dependOn(&run_panel_draw_tests.step);
 
     // Individual test targets
     const test_toplevel = b.step("test-toplevel", "Run toplevel tests");
@@ -235,6 +269,9 @@ pub fn build(b: *std.Build) void {
 
     const test_icon = b.step("test-icon", "Run icon loading tests");
     test_icon.dependOn(&run_icon_tests.step);
+
+    const test_panel_draw = b.step("test-panel-draw", "Run panel draw C function tests");
+    test_panel_draw.dependOn(&run_panel_draw_tests.step);
 }
 
 fn addProtocolSources(root_mod: *std.Build.Module, b: *std.Build, c_flags: []const []const u8) void {

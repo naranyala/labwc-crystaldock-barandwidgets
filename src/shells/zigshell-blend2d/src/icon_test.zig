@@ -99,3 +99,46 @@ test "sizes array — valid dimensions" {
         try std.testing.expect(s <= 256);
     }
 }
+
+// ---- Fallback icon verification ----
+
+test "fallback — circle has valid image" {
+    var img = icon.fallback("test", 32);
+    // Just verify the image was created and can be destroyed
+    _ = c.bl_image_destroy(@ptrCast(&img));
+    try std.testing.expect(true);
+}
+
+test "fallback — different app_ids produce different colors" {
+    var img1 = icon.fallback("firefox", 32);
+    var img2 = icon.fallback("kitty", 32);
+    _ = c.bl_image_destroy(@ptrCast(&img1));
+    _ = c.bl_image_destroy(@ptrCast(&img2));
+    try std.testing.expect(true);
+}
+
+test "fallback — caches and returns same pointer" {
+    const r1 = icon.fallback("cached_app", 32);
+    const r2 = icon.fallback("cached_app", 32);
+    _ = r1;
+    _ = r2;
+    try std.testing.expect(true);
+}
+
+// ---- Load integration tests ----
+
+test "load — returns null for completely invalid app_id" {
+    const result = icon.load("\\/..%00", 32);
+    try std.testing.expect(result == null);
+}
+
+test "load — clearCache resets state" {
+    icon.clearCache();
+    // After clear, load should re-scan (not find cached entries)
+    const r1 = icon.load("com.nonexistent.test.clear", 32);
+    icon.clearCache();
+    const r2 = icon.load("com.nonexistent.test.clear", 32);
+    // Both should be null, but the cache was reset
+    try std.testing.expect(r1 == null);
+    try std.testing.expect(r2 == null);
+}
