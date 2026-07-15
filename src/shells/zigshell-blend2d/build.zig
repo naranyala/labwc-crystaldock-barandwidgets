@@ -101,9 +101,34 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/dock_test.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true,
+    });
+    dock_mod.addIncludePath(b.path("src"));
+    dock_mod.addIncludePath(b.path("."));
+    dock_mod.addIncludePath(b.path("deps/blend2d"));
+    dock_mod.addLibraryPath(b.path("build/deps/blend2d"));
+    dock_mod.linkSystemLibrary("blend2d", .{});
+    dock_mod.linkSystemLibrary("stdc++", .{});
+    dock_mod.linkSystemLibrary("wayland-client", .{});
+    dock_mod.addCSourceFile(.{
+        .file = b.path("src/dock_c_impl.c"),
+        .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
+    });
+    dock_mod.addCSourceFile(.{
+        .file = b.path("src/blend2d_render.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
+    dock_mod.addCSourceFile(.{
+        .file = b.path("src/dock.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
+    dock_mod.addCSourceFile(.{
+        .file = b.path("src/icon.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
     });
     const dock_tests = b.addTest(.{ .root_module = dock_mod });
     const run_dock_tests = b.addRunArtifact(dock_tests);
+    run_dock_tests.step.dependOn(&cmake_build.step);
 
     const panel_mod_test = b.createModule(.{
         .root_source_file = b.path("src/panel_test.zig"),
@@ -124,6 +149,10 @@ pub fn build(b: *std.Build) void {
     });
     panel_mod_test.addCSourceFile(.{
         .file = b.path("src/blend2d_render.c"),
+        .flags = &.{ "-std=gnu11", "-Wall" },
+    });
+    panel_mod_test.addCSourceFile(.{
+        .file = b.path("src/icon.c"),
         .flags = &.{ "-std=gnu11", "-Wall" },
     });
     const panel_tests = b.addTest(.{ .root_module = panel_mod_test });

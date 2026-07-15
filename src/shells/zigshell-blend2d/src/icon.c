@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+#include <unistd.h>
 
 static const char* desktop_dirs[] = { "/usr/share/applications/", "/usr/local/share/applications/", NULL };
 static const char* theme_dirs[] = {
@@ -27,22 +28,13 @@ typedef struct { char app_id[128]; BLImageCore img; bool valid; } CacheEntry;
 static CacheEntry icon_cache[ICON_CACHE_MAX], fb_cache[ICON_CACHE_MAX];
 static int icon_cache_count, fb_cache_count;
 
-static BLFontFaceCore fb_face;
-static bool fb_face_ok, fb_face_tried;
-static const char* fallback_fonts[] = {
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/TTF/DejaVuSans.ttf",
-    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/google-noto/NotoSans-Regular.ttf",
-    "/usr/share/fonts/gnu-free/FreeSans.ttf", NULL
+static const char* letter_fonts[] = {
+    "/usr/share/fonts/TTF/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+    NULL
 };
-
-static bool ensure_fb_face(void) {
-    if (fb_face_tried) return fb_face_ok;
-    fb_face_tried = true;
-    for (int i = 0; fallback_fonts[i]; i++)
-        if (bl_font_face_create_from_file(&fb_face, fallback_fonts[i], 0) == BL_SUCCESS) { fb_face_ok = true; return true; }
-    return false;
-}
 
 void icon_init(void) { memset(icon_cache, 0, sizeof(icon_cache)); memset(fb_cache, 0, sizeof(fb_cache)); icon_cache_count = fb_cache_count = 0; }
 
@@ -94,14 +86,17 @@ static bool build_sized_path(char* buf, int sz, const char* fmt, int s, const ch
 
 static bool try_load_png(const char* icon_name, BLImageCore* out) {
     char buf[1024];
+    bl_image_init(out);
     for (int d = 0; scalable_dirs[d]; d++) {
         if (!build_path(buf, sizeof(buf), scalable_dirs[d], icon_name, ".png")) continue;
         if (bl_image_read_from_file(out, buf, NULL) == BL_SUCCESS) return true;
+        bl_image_destroy(out); bl_image_init(out);
     }
     for (int s = 0; s < (int)(sizeof(icon_sizes)/sizeof(icon_sizes[0])); s++)
         for (int d = 0; theme_dirs[d]; d++) {
             if (!build_sized_path(buf, sizeof(buf), theme_dirs[d], icon_sizes[s], icon_name, ".png")) continue;
             if (bl_image_read_from_file(out, buf, NULL) == BL_SUCCESS) return true;
+            bl_image_destroy(out); bl_image_init(out);
         }
     return false;
 }
@@ -152,22 +147,35 @@ BLImageCore* icon_fallback(const char* app_id, int size) {
     bl_context_set_fill_style_rgba32(&ctx, color);
     BLPoint o = {0,0}; bl_context_fill_path_d(&ctx, &o, &path); bl_path_destroy(&path);
 
+    // Draw first letter (create font fresh each time — no static state)
     if (app_id[0]) {
         char letter[2] = { (char)toupper((unsigned char)app_id[0]), 0 };
         BLGlyphBufferCore gb; bl_glyph_buffer_init(&gb);
         bl_glyph_buffer_set_text(&gb, letter, 1, BL_TEXT_ENCODING_UTF8);
-        ensure_fb_face();
-        if (fb_face_ok) {
-            BLFontCore font; bl_font_create_from_face(&font, &fb_face, (float)(size*0.55));
-            bl_font_shape(&font, &gb);
-            const BLGlyphRun* gr = bl_glyph_buffer_get_glyph_run(&gb);
-            bl_context_set_fill_style_rgba32(&ctx, 0xFFFFFFFF);
-            BLPoint to = { cx-4, cy+4 }; bl_context_fill_glyph_run_d(&ctx, &to, &font, gr);
-            bl_font_destroy(&font);
+
+        BLFontFaceCore face; memset(&face, 0, sizeof(BLFontFaceCore));
+        bl_font_face_init(&face);
+        BLFontCore font; memset(&font, 0, sizeof(BLFontCore));
+        bl_font_init(&font);
+
+        for (int fi = 0; letter_fonts[fi]; fi++) {
+            if (access(letter_fonts[fi], R_OK) != 0) continue;
+            if (bl_font_face_create_from_file(&face, letter_fonts[fi], 0) == BL_SUCCESS) {
+                if (bl_font_create_from_face(&font, &face, (float)(size*0.55)) == BL_SUCCESS) {
+                    bl_font_shape(&font, &gb);
+                    const BLGlyphRun* gr = bl_glyph_buffer_get_glyph_run(&gb);
+                    bl_context_set_fill_style_rgba32(&ctx, 0xFFFFFFFF);
+                    BLPoint to = { cx-4, cy+4 }; bl_context_fill_glyph_run_d(&ctx, &to, &font, gr);
+                    bl_font_destroy(&font);
+                }
+                bl_font_face_destroy(&face);
+                break;
+            }
         }
         bl_glyph_buffer_destroy(&gb);
     }
     bl_context_end(&ctx); bl_context_destroy(&ctx);
+
     cache_fallback(app_id, img);
     return &fb_cache[fb_cache_count-1].img;
 }

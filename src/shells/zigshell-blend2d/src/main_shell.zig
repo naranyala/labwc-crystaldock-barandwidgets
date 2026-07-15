@@ -8,6 +8,7 @@ const panel_mod = @import("panel.zig");
 const dock_mod = @import("dock.zig");
 const icon = @import("icon.zig");
 const blend2d = @import("blend2d_render.zig");
+const damage = @import("damage.zig");
 
 const PANEL_HEIGHT = 36;
 const DOCK_HEIGHT = 48;
@@ -38,6 +39,7 @@ const SurfaceState = struct {
     buf_width: i32 = 0,
     buf_height: i32 = 0,
     buf_size: usize = 0,
+    dirty_region: damage.Region = damage.Region.init(),
 };
 
 var panel_surface = SurfaceState{ .height = PANEL_HEIGHT };
@@ -45,6 +47,9 @@ var dock_surface = SurfaceState{ .height = DOCK_HEIGHT };
 var dirty = true;
 var running = true;
 var timer_fd: i32 = -1;
+var reload_config: bool = false;
+var config_path: ?[]const u8 = null;
+var autohide_dock: bool = false;
 
 // ---- shared toplevel tracking ----
 var toplevels: [MAX_TOPLEVELS]toplevel.ToplevelInfo = undefined;
@@ -198,6 +203,14 @@ fn pointerEnter(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, surface: ?*c.
     pointer_y = c.wl_fixed_to_int(y);
     pointer_on_panel = (surface == panel_surface.surface);
     pointer_on_dock = (surface == dock_surface.surface);
+    if (autohide_dock and pointer_on_dock) {
+        if (dock_surface.layer_surface) |ls| {
+            c.zwlr_layer_surface_v1_set_size(ls, 0, DOCK_HEIGHT);
+            c.zwlr_layer_surface_v1_set_exclusive_zone(ls, DOCK_HEIGHT);
+            dock_surface.height = DOCK_HEIGHT;
+            c.wl_surface_commit(dock_surface.surface);
+        }
+    }
     if (pointer_on_dock) {
         dock_hover_idx = dock_mod.iconAt(dock_surface.width, dock_surface.height, &toplevels, toplevel_count, pointer_x);
     }
@@ -212,6 +225,14 @@ fn pointerLeave(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, surface: ?*c.
     pointer_on_panel = false;
     pointer_on_dock = false;
     dock_hover_idx = -1;
+    if (autohide_dock) {
+        if (dock_surface.layer_surface) |ls| {
+            c.zwlr_layer_surface_v1_set_size(ls, 0, 1);
+            c.zwlr_layer_surface_v1_set_exclusive_zone(ls, 0);
+            dock_surface.height = 1;
+            c.wl_surface_commit(dock_surface.surface);
+        }
+    }
     dock_ctx_menu_open = false;
     dirty = true;
 }
@@ -321,20 +342,41 @@ fn executeSettingsAction(action: []const u8) void {
     } else if (std.mem.eql(u8, action, "restart")) {
         running = false;
     } else if (std.mem.eql(u8, action, "autohide")) {
-        if (dock_surface.layer_surface) |ls| {
-            if (dock_surface.height > 0) {
-                c.zwlr_layer_surface_v1_set_size(ls, 0, 0);
-                c.zwlr_layer_surface_v1_set_exclusive_zone(ls, 0);
-                dock_surface.height = 0;
-            } else {
-                c.zwlr_layer_surface_v1_set_size(ls, 0, DOCK_HEIGHT);
-                c.zwlr_layer_surface_v1_set_exclusive_zone(ls, DOCK_HEIGHT);
-                dock_surface.height = DOCK_HEIGHT;
-            }
-            c.wl_surface_commit(dock_surface.surface);
-        }
+        setDockAutohide(!autohide_dock);
+    } else if (std.mem.eql(u8, action, "icon_small")) {
+        dock_mod.DOCK_ICON_SIZE = 22;
+        c.dock_icon_size = 22;
+        icon.clearCache();
+        dirty = true;
+    } else if (std.mem.eql(u8, action, "icon_medium")) {
+        dock_mod.DOCK_ICON_SIZE = 28;
+        c.dock_icon_size = 28;
+        icon.clearCache();
+        dirty = true;
+    } else if (std.mem.eql(u8, action, "icon_large")) {
+        dock_mod.DOCK_ICON_SIZE = 36;
+        c.dock_icon_size = 36;
+        icon.clearCache();
+        dirty = true;
     }
     settings_open = false;
+}
+
+fn setDockAutohide(on: bool) void {
+    autohide_dock = on;
+    if (dock_surface.layer_surface) |ls| {
+        if (on and !pointer_on_dock) {
+            c.zwlr_layer_surface_v1_set_size(ls, 0, 1);
+            c.zwlr_layer_surface_v1_set_exclusive_zone(ls, 0);
+            dock_surface.height = 1;
+        } else {
+            c.zwlr_layer_surface_v1_set_size(ls, 0, DOCK_HEIGHT);
+            c.zwlr_layer_surface_v1_set_exclusive_zone(ls, DOCK_HEIGHT);
+            dock_surface.height = DOCK_HEIGHT;
+        }
+        c.wl_surface_commit(dock_surface.surface);
+    }
+    dirty = true;
 }
 
 fn handleDockContextMenu(x: i32, y: i32, button: u32) void {
@@ -479,6 +521,47 @@ const frame_listener = c.wl_callback_listener{
     .done = frameDone,
 };
 
+// ---- surface (HiDPI / fractional scale) ----
+fn surfacePreferredScale(data: ?*anyopaque, surface: ?*c.wl_surface, scale: i32) callconv(.c) void {
+    _ = data;
+    if (scale <= 0) return;
+    const ss = if (surface == panel_surface.surface) &panel_surface else &dock_surface;
+    ss.scale = @intCast(scale);
+    if (ss.surface) |s| c.wl_surface_set_buffer_scale(s, @intCast(ss.scale));
+    dirty = true;
+}
+
+const surface_listener = c.wl_surface_listener{
+    .enter = struct {
+        fn f(_: ?*anyopaque, _: ?*c.wl_surface, _: ?*c.wl_output) callconv(.c) void {}
+    }.f,
+    .leave = struct {
+        fn f(_: ?*anyopaque, _: ?*c.wl_surface, _: ?*c.wl_output) callconv(.c) void {}
+    }.f,
+    .preferred_buffer_scale = surfacePreferredScale,
+    .preferred_buffer_transform = struct {
+        fn f(_: ?*anyopaque, _: ?*c.wl_surface, _: u32) callconv(.c) void {}
+    }.f,
+};
+
+// ==== LIVE CONFIG RELOAD (SIGHUP) ====
+
+fn onSighup(_: c_int) callconv(.c) void {
+    reload_config = true;
+}
+
+fn reloadWidgets() void {
+    const path = config_path orelse return;
+    const res = panel_mod.configLoadWidgets(std.heap.page_allocator, path) orelse return;
+    if (res.count <= 0) return;
+    for (0..@intCast(res.count)) |i| {
+        widgets[i] = res.widgets[i];
+    }
+    widget_count = res.count;
+    dirty = true;
+    std.log.info("zigshell-blend2d: reloaded {d} widgets from {s}", .{ widget_count, path });
+}
+
 // ==== RENDERING ====
 
 fn createShmFd(size: usize) ?i32 {
@@ -528,6 +611,7 @@ fn ensureBuffer(ss: *SurfaceState) void {
 
         // Init Blend2D renderer on the SHM buffer
         ss.renderer = blend2d.BlendRenderer.init(@ptrCast(ss.shm_data), w, h, stride) catch null;
+        if (ss.renderer) |*r| r.setScale(@as(f64, @floatFromInt(ss.scale)));
 
         ss.buf_width = w;
         ss.buf_height = h;
@@ -538,8 +622,15 @@ fn ensureBuffer(ss: *SurfaceState) void {
 fn renderPanel() void {
     ensureBuffer(&panel_surface);
     var renderer = panel_surface.renderer orelse return;
-    const w = panel_surface.buf_width;
-    const h = panel_surface.buf_height;
+    const w = panel_surface.width;
+    const h = panel_surface.height;
+
+    // Debug: check font loaded
+    if (renderer.font_loaded()) {
+        std.log.info("panel: font loaded, size={d}", .{renderer.font_size()});
+    } else {
+        std.log.warn("panel: NO FONT LOADED - text will be invisible", .{});
+    }
 
     // Background gradient (two-tone dark)
     renderer.fillRect(0, 0, @as(f64, @floatFromInt(w)), @as(f64, @floatFromInt(h)) / 2.0, 0xFF1A1C26);
@@ -592,6 +683,7 @@ fn renderPanel() void {
 
     // Flush Blend2D operations to the pixel buffer
     renderer.flush();
+    panel_surface.dirty_region.add(0, 0, panel_surface.buf_width, panel_surface.buf_height);
 }
 
 fn drawSettingsButton(renderer: *blend2d.BlendRenderer, w: i32, h: i32) void {
@@ -641,10 +733,14 @@ fn renderDock() void {
     if (dock_surface.height <= 0) return;
     ensureBuffer(&dock_surface);
     var renderer = dock_surface.renderer orelse return;
+
+    // Debug: show toplevel count
+    std.log.info("dock: rendering {d} toplevels", .{toplevel_count});
+
     dock_mod.draw(
         &renderer,
-        dock_surface.buf_width,
-        dock_surface.buf_height,
+        dock_surface.width,
+        dock_surface.height,
         &toplevels,
         toplevel_count,
         dock_hover_idx,
@@ -655,8 +751,11 @@ fn renderDock() void {
         drawDockContextMenu(&renderer);
     }
 
+    drawDockTooltip(&renderer, dock_surface.width, dock_surface.height);
+
     // Flush Blend2D operations to the pixel buffer
     renderer.flush();
+    dock_surface.dirty_region.add(0, 0, dock_surface.buf_width, dock_surface.buf_height);
 }
 
 fn drawDockContextMenu(renderer: *blend2d.BlendRenderer) void {
@@ -695,9 +794,33 @@ fn drawDockContextMenu(renderer: *blend2d.BlendRenderer) void {
     }
 }
 
+fn drawDockTooltip(renderer: *blend2d.BlendRenderer, surf_w: i32, surf_h: i32) void {
+    if (!pointer_on_dock) return;
+    if (dock_hover_idx < 0 or dock_hover_idx >= toplevel_count) return;
+    const title = std.mem.sliceTo(&toplevels[@intCast(dock_hover_idx)].title, 0);
+    if (title.len == 0) return;
+
+    const pad: i32 = 8;
+    const tw: i32 = @as(i32, @intCast(title.len)) * 7 + pad * 2;
+    const th: i32 = 22;
+    var bx: i32 = pointer_x -| @divTrunc(tw, 2);
+    if (bx < 0) bx = 0;
+    if (bx + tw > surf_w) bx = surf_w - tw;
+    const by: i32 = surf_h - th - 4;
+
+    renderer.fillRect(@floatFromInt(bx), @floatFromInt(by), @floatFromInt(tw), @floatFromInt(th), 0xF21A1C26);
+    _ = panel_mod.widgetText(renderer, @ptrCast(title.ptr), bx + pad, by + th, 10.0, 0.9, 0.9, 0.9);
+}
+
 fn submitSurface(ss: *SurfaceState) void {
     c.wl_surface_attach(ss.surface, ss.buffer, 0, 0);
-    c.wl_surface_damage_buffer(ss.surface, 0, 0, ss.buf_width, ss.buf_height);
+    const r = ss.dirty_region;
+    if (r.active) {
+        c.wl_surface_damage_buffer(ss.surface, r.x, r.y, r.w, r.h);
+    } else {
+        c.wl_surface_damage_buffer(ss.surface, 0, 0, ss.buf_width, ss.buf_height);
+    }
+    ss.dirty_region.reset();
     if (ss.frame_cb) |cb| c.wl_callback_destroy(cb);
     ss.frame_cb = c.wl_surface_frame(ss.surface);
     _ = c.wl_callback_add_listener(ss.frame_cb, &frame_listener, null);
@@ -711,6 +834,11 @@ pub fn main() !void {
         std.log.err("zigshell-blend2d: failed to connect to Wayland display", .{});
         return error.WaylandConnectFailed;
     };
+
+    _ = c.signal(c.SIGHUP, onSighup);
+    if (c.getenv("ZIGSHELL_CONFIG")) |p| {
+        config_path = std.mem.sliceTo(p, 0);
+    }
 
     registry = c.wl_display_get_registry(display);
     _ = c.wl_registry_add_listener(registry, &registry_listener, null);
@@ -746,6 +874,7 @@ pub fn main() !void {
 
     // Create panel surface (TOP)
     panel_surface.surface = c.wl_compositor_create_surface(compositor);
+    _ = c.wl_surface_add_listener(panel_surface.surface, &surface_listener, null);
     panel_surface.layer_surface = c.zwlr_layer_shell_v1_get_layer_surface(
         layer_shell,
         panel_surface.surface,
@@ -761,11 +890,12 @@ pub fn main() !void {
     c.zwlr_layer_surface_v1_set_anchor(panel_surface.layer_surface, panel_anchor);
     c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, PANEL_HEIGHT);
     c.zwlr_layer_surface_v1_set_exclusive_zone(panel_surface.layer_surface, PANEL_HEIGHT);
-    c.zwlr_layer_surface_v1_set_keyboard_interactivity(panel_surface.layer_surface, 0);
+    c.zwlr_layer_surface_v1_set_keyboard_interactivity(panel_surface.layer_surface, 1);
     c.wl_surface_commit(panel_surface.surface);
 
     // Create dock surface (BOTTOM)
     dock_surface.surface = c.wl_compositor_create_surface(compositor);
+    _ = c.wl_surface_add_listener(dock_surface.surface, &surface_listener, null);
     dock_surface.layer_surface = c.zwlr_layer_shell_v1_get_layer_surface(
         layer_shell,
         dock_surface.surface,
@@ -821,6 +951,10 @@ pub fn main() !void {
 
     // Main event loop
     while (running) {
+        if (reload_config) {
+            reload_config = false;
+            reloadWidgets();
+        }
         if (dirty) {
             renderPanel();
             submitSurface(&panel_surface);

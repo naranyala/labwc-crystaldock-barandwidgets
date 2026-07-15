@@ -30,6 +30,8 @@ static const char* font_paths[] = {
     // Fedora/RHEL
     "/usr/share/fonts/TTF/DejaVuSans.ttf",
     "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/TTF/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/dejavu/DejaVuSans-Bold.ttf",
     "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",
     // Arch
     "/usr/share/fonts/noto/NotoSans-Regular.ttf",
@@ -55,15 +57,21 @@ static const char* bold_paths[] = {
 };
 
 static void load_default_font(BlendRenderer* r) {
+    // Initialize font structures
+    bl_font_face_init(&r->font_face);
+    bl_font_init(&r->font);
+
     for (int i = 0; font_paths[i] != NULL; i++) {
         if (bl_font_face_create_from_file(&r->font_face, font_paths[i], 0) == BL_SUCCESS) {
             if (bl_font_create_from_face(&r->font, &r->font_face, 11.0) == BL_SUCCESS) {
                 r->font_loaded = true;
                 return;
             }
+            bl_font_face_destroy(&r->font_face);
+            bl_font_face_init(&r->font_face);
         }
     }
-    bl_font_init(&r->font);
+    // No font found — keep initialized but empty
 }
 
 BlendRenderer* blend_renderer_create(uint8_t* shm_data, int width, int height, int stride) {

@@ -7,7 +7,8 @@
 
 struct BlendRenderer;
 
-#define DOCK_ICON_SIZE 28
+// Runtime icon size (settable from the shell; default 28)
+extern int dock_icon_size;
 #define DOCK_PAD 8
 
 // Draw the dock background, icons, and focus indicators.

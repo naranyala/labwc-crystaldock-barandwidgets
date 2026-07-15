@@ -11,6 +11,7 @@ pub const TextMetrics = struct {
 
 pub const BlendRenderer = struct {
     handle: ?*c.BlendRenderer = null,
+    scale: f64 = 1.0,
 
     pub fn init(pixel_data: [*]u8, width: i32, height: i32, stride_bytes: i32) !BlendRenderer {
         const handle = c.blend_renderer_create(pixel_data, width, height, stride_bytes);
@@ -25,12 +26,19 @@ pub const BlendRenderer = struct {
         }
     }
 
+    // HiDPI / fractional scale: all geometry is specified in logical
+    // pixels and multiplied by `scale` to map into the device buffer.
+    pub fn setScale(self: *BlendRenderer, scale: f64) void {
+        self.scale = scale;
+    }
+
     pub fn flush(self: *BlendRenderer) void {
         if (self.handle) |h| c.blend_renderer_flush(h);
     }
 
     pub fn fillRect(self: *BlendRenderer, x: f64, y: f64, w: f64, h: f64, color: u32) void {
-        if (self.handle) |handle| c.blend_renderer_fill_rect(handle, x, y, w, h, color);
+        const s = self.scale;
+        if (self.handle) |handle| c.blend_renderer_fill_rect(handle, x * s, y * s, w * s, h * s, color);
     }
 
     pub fn fillRectRaw(self: *BlendRenderer, x: f64, y: f64, w: f64, h: f64, r: u8, g: u8, b: u8, a: u8) void {
@@ -40,7 +48,8 @@ pub const BlendRenderer = struct {
 
     pub fn drawText(self: *BlendRenderer, text: []const u8, x: f64, y: f64, color: u32) void {
         if (text.len == 0) return;
-        if (self.handle) |h| c.blend_renderer_draw_text(h, text.ptr, @intCast(text.len), x, y, color);
+        const s = self.scale;
+        if (self.handle) |h| c.blend_renderer_draw_text(h, text.ptr, @intCast(text.len), x * s, y * s, color);
     }
 
     pub fn measureText(self: *BlendRenderer, text: []const u8) TextMetrics {
@@ -53,19 +62,22 @@ pub const BlendRenderer = struct {
     }
 
     pub fn drawImage(self: *BlendRenderer, img: *c.BLImageCore, x: f64, y: f64) void {
-        if (self.handle) |h| c.blend_renderer_draw_image(h, @ptrCast(img), x, y);
+        const s = self.scale;
+        if (self.handle) |h| c.blend_renderer_draw_image(h, @ptrCast(img), x * s, y * s);
     }
 
     pub fn drawCircle(self: *BlendRenderer, cx: f64, cy: f64, radius: f64, color: u32) void {
-        if (self.handle) |h| c.blend_renderer_draw_circle(h, cx, cy, radius, color);
+        const s = self.scale;
+        if (self.handle) |h| c.blend_renderer_draw_circle(h, cx * s, cy * s, radius * s, color);
     }
 
     pub fn drawBorder(self: *BlendRenderer, x: f64, y: f64, w: f64, h: f64, color: u32) void {
-        if (self.handle) |handle| c.blend_renderer_draw_border(handle, x, y, w, h, color);
+        const s = self.scale;
+        if (self.handle) |handle| c.blend_renderer_draw_border(handle, x * s, y * s, w * s, h * s, color);
     }
 
     pub fn setFontSize(self: *BlendRenderer, size: f64) void {
-        if (self.handle) |h| c.blend_renderer_set_font_size(h, size);
+        if (self.handle) |h| c.blend_renderer_set_font_size(h, size * self.scale);
     }
 
     pub fn font_size(self: *BlendRenderer) f64 {

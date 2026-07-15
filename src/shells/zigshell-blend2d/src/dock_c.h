@@ -17,7 +17,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <dirent.h>
 #include <sys/statvfs.h>
+#include <signal.h>
 
 // Real Wayland headers (self-contained, no glib dependency)
 #include <wayland-client.h>
