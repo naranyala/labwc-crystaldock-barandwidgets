@@ -29,9 +29,13 @@ pub fn initOrder() void {
 pub fn launchPinned(index: usize) void {
     if (index < persistent_count) {
         const app = std.mem.sliceTo(&persistent_order[index], 0);
-        var buf: [256]u8 = undefined;
-        const cmd = std.fmt.bufPrintZ(&buf, "{s} &", .{app}) catch return;
-        _ = c.system(cmd.ptr);
+        var buf: [512]u8 = undefined;
+        const cmd = std.fmt.bufPrintZ(&buf, "{s} &", .{app}) catch |err| {
+            std.log.err("app exec format error: {}", .{err});
+            return;
+        };
+        const rc = c.system(cmd.ptr);
+    if (rc != 0) std.log.warn("dock: '{s}' exited with code {d}", .{ app, rc });
     }
 }
 
@@ -63,6 +67,7 @@ pub fn draw(
     c.cairo_line_to(cr, @floatFromInt(w), 0.5);
     c.cairo_stroke(cr);
 
+    // ===== running-app icons (centered) =====
     const DockItem = struct {
         app_id: []const u8,
         top_idx: ?usize,
@@ -134,20 +139,22 @@ pub fn draw(
     }
     if (num_items > 0) total_w -= PAD;
 
-    var current_x = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0);
+    const current_x = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0);
+
+    var app_x = current_x;
 
     for (0..num_items) |g| {
         const item = items[g];
         const icon_w = widths[g];
-        const x = current_x;
+        const x = app_x;
         const icon_y = @as(f64, @floatFromInt(h)) - icon_w - 6.0;
 
-        const name = if (item.top_idx) |idx| 
+        const name = if (item.top_idx) |idx|
             if (tops[idx].app_id[0] != 0) tops[idx].app_id[0..std.mem.indexOfScalar(u8, &tops[idx].app_id, 0) orelse tops[idx].app_id.len] else tops[idx].title[0..std.mem.indexOfScalar(u8, &tops[idx].title, 0) orelse tops[idx].title.len]
         else item.app_id;
 
         const icon_surf = icon.load(@ptrCast(name.ptr), DOCK_ICON_SIZE);
-        
+
         c.cairo_save(cr);
         c.cairo_translate(cr, x, icon_y);
         const scale_factor = icon_w / @as(f64, @floatFromInt(DOCK_ICON_SIZE));
@@ -161,7 +168,7 @@ pub fn draw(
         if (count > 0) {
             const dot_spacing = 6.0;
             const total_dots_w = @as(f64, @floatFromInt(count - 1)) * dot_spacing;
-            const start_dot_x = x + icon_w/2.0 - total_dots_w/2.0;
+            const start_dot_x = x + icon_w / 2.0 - total_dots_w / 2.0;
 
             for (0..count) |d| {
                 const dot_x = start_dot_x + @as(f64, @floatFromInt(d)) * dot_spacing;
@@ -175,14 +182,33 @@ pub fn draw(
             }
         }
 
-        current_x += icon_w + PAD;
+        app_x += icon_w + PAD;
     }
 
-    // Draw Settings Icon
-    const cy = @divTrunc(h - DOCK_ICON_SIZE, 2);
-    const settings_x = w - DOCK_ICON_SIZE - 20;
+    // ---- Separated bar: settings + app-launcher toggles ----
+    // A vertical divider separates the running-app icons from the fixed
+    // toggles, which are then placed like pinned icons on the right.
+    const icon_right = current_x + total_w;
+    const toggle_start = icon_right + PAD;
+    const divider_x = icon_right + PAD / 2.0;
+    theme.setSource(cr, t.border_color);
+    c.cairo_set_line_width(cr, 1);
+    c.cairo_move_to(cr, divider_x, 6.0);
+    c.cairo_line_to(cr, divider_x, @as(f64, @floatFromInt(h)) - 6.0);
+    c.cairo_stroke(cr);
+
+    const tcy = @divTrunc(h - DOCK_ICON_SIZE, 2);
+
+    // Settings toggle
+    const settings_x = toggle_start;
     const settings_surf = icon.load("preferences-system", DOCK_ICON_SIZE);
-    c.cairo_set_source_surface(cr, settings_surf, @floatFromInt(settings_x), @floatFromInt(cy));
+    c.cairo_set_source_surface(cr, settings_surf, settings_x, @floatFromInt(tcy));
+    c.cairo_paint(cr);
+
+    // App launcher toggle
+    const launcher_toggle_x = settings_x + @as(f64, @floatFromInt(DOCK_ICON_SIZE + PAD));
+    const launcher_surf = icon.load("system-search", DOCK_ICON_SIZE);
+    c.cairo_set_source_surface(cr, launcher_surf, launcher_toggle_x, @floatFromInt(tcy));
     c.cairo_paint(cr);
 }
 
@@ -245,12 +271,26 @@ pub fn iconAt(w: i32, _: i32, tops: []toplevel.ToplevelInfo, top_count: i32, mou
     }
     if (num_items > 0) total_w -= PAD;
 
-    var current_x = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0);
+    const icon_right = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0) + total_w;
+    const toggle_start = icon_right + PAD;
+    const slot_w = DOCK_ICON_SIZE + PAD;
+    const settings_x = toggle_start;
+    const launcher_x = settings_x + slot_w;
 
+    // Check the separated-bar toggles (launcher + settings), placed to the
+    // right of the running apps, matching the draw() geometry.
+    if (mx >= launcher_x and mx < launcher_x + @as(f64, @floatFromInt(DOCK_ICON_SIZE))) {
+        return -3; // launcher toggle
+    }
+    if (mx >= settings_x and mx < settings_x + @as(f64, @floatFromInt(DOCK_ICON_SIZE))) {
+        return -2; // settings toggle
+    }
+
+    var app_x = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0);
     for (0..num_items) |g| {
         const icon_w = widths[g];
         const half_w = icon_w / 2.0;
-        const icon_center = current_x + half_w;
+        const icon_center = app_x + half_w;
 
         // If the mouse is within bounds of this icon slot
         if (mx >= icon_center - half_w and mx <= icon_center + half_w) {
@@ -261,15 +301,9 @@ pub fn iconAt(w: i32, _: i32, tops: []toplevel.ToplevelInfo, top_count: i32, mou
             }
         }
 
-        current_x += icon_w + PAD;
+        app_x += icon_w + PAD;
     }
-    
-    // Check Settings Icon
-    const settings_x = w - DOCK_ICON_SIZE - 20;
-    if (mouse_x >= settings_x and mouse_x < settings_x + DOCK_ICON_SIZE + PAD) {
-        return -2;
-    }
-    
+
     return -1;
 }
 
@@ -318,69 +352,151 @@ pub fn swapGroups(idxA: usize, idxB: usize) void {
     @memcpy(&persistent_order[idxB], &tmp);
 }
 
-test "dock iconAt logic" {
+// Replicate iconAt's layout math to derive the on-screen positions of a given
+// number of dock icons plus the separated-bar settings/launcher toggles, for a
+// specified probe position `mx`. Mirrors the geometry in iconAt() exactly.
+fn testDockLayout(w: i32, num_items: usize, mx: f64) struct {
+    widths: [100]f64,
+    app_start: f64,
+    settings_x: f64,
+    launcher_x: f64,
+} {
+    var widths = std.mem.zeroes([100]f64);
+    var total_w: f64 = 0;
+    const slot: f64 = DOCK_ICON_SIZE + PAD;
+    const unscaled_total: f64 = if (num_items > 0) @as(f64, @floatFromInt(num_items)) * slot - PAD else 0;
+    const unscaled_start_x: f64 = @max(0, (@as(f64, @floatFromInt(w)) - unscaled_total) / 2.0);
+    for (0..num_items) |g| {
+        const unscaled_x = unscaled_start_x + @as(f64, @floatFromInt(g)) * slot + (@as(f64, @floatFromInt(DOCK_ICON_SIZE)) / 2.0);
+        var scale: f64 = 1.0;
+        if (mx >= 0) {
+            const dist = mx - unscaled_x;
+            scale += 1.0 * std.math.exp(-(dist * dist) / 4000.0);
+        }
+        widths[g] = DOCK_ICON_SIZE * scale;
+        total_w += widths[g] + PAD;
+    }
+    if (num_items > 0) total_w -= PAD;
+    const app_start = @max(0, (@as(f64, @floatFromInt(w)) - total_w) / 2.0);
+    const icon_right = app_start + total_w;
+    const toggle_start = icon_right + PAD;
+    const slot_w = DOCK_ICON_SIZE + PAD;
+    return .{
+        .widths = widths,
+        .app_start = app_start,
+        .settings_x = toggle_start,
+        .launcher_x = toggle_start + slot_w,
+    };
+}
+
+test "dock iconAt miss" {
+    persistent_count = 0;
+    order_initialized = true; // suppress initOrder seeding
+    @memcpy(&persistent_order[0], "foot" ++ ("\x00" ** 124));
+    @memcpy(&persistent_order[1], "firefox" ++ ("\x00" ** 121));
+    persistent_count = 2;
+
     var tops: [10]toplevel.ToplevelInfo = undefined;
     for (0..10) |i| tops[i] = .{};
-    
-    // Set up 3 windows, 2 in the same group
-    @memcpy(tops[0].app_id[0..9], "foot-term");
-    @memcpy(tops[1].app_id[0..7], "firefox");
-    @memcpy(tops[2].app_id[0..9], "foot-term");
-    
-    const w = 1920;
-    
-    // Test hitting outside
-    try std.testing.expectEqual(@as(i32, -1), iconAt(w, 48, &tops, 3, 0));
-    try std.testing.expectEqual(@as(i32, -1), iconAt(w, 48, &tops, 3, w / 2 - 200));
-    
-    // Test hitting settings icon
-    const settings_x = w - DOCK_ICON_SIZE - 20;
-    try std.testing.expectEqual(@as(i32, -2), iconAt(w, 48, &tops, 3, settings_x + 5));
 
-    // Test grouping: there should be 2 groups (foot-term, firefox)
-    // The total width of 2 icons = 2 * (DOCK_ICON_SIZE + PAD) - PAD.
-    // They are centered. We can check if clicking near center hits group 0 or 1.
-    const slot = DOCK_ICON_SIZE + PAD;
-    const total_w = 2 * slot - PAD;
-    const start_x = @divTrunc(w - total_w, 2);
-    
-    // Test hitting first group (foot-term)
-    try std.testing.expectEqual(@as(i32, 0), iconAt(w, 48, &tops, 3, start_x + 5));
-    
-    // Test hitting second group (firefox)
-    try std.testing.expectEqual(@as(i32, 1), iconAt(w, 48, &tops, 3, start_x + slot + 5));
+    const w = 1920;
+    // Far left of the centered dock is a miss.
+    try std.testing.expectEqual(@as(i32, -1), iconAt(w, 48, &tops, 0, 0));
+}
+
+test "dock iconAt hits pinned groups" {
+    persistent_count = 0;
+    order_initialized = true;
+    @memcpy(&persistent_order[0], "foot" ++ ("\x00" ** 124));
+    @memcpy(&persistent_order[1], "firefox" ++ ("\x00" ** 121));
+    persistent_count = 2;
+
+    var tops: [10]toplevel.ToplevelInfo = undefined;
+    for (0..10) |i| tops[i] = .{};
+
+    const w = 1920;
+
+    // Probe the center of group 0 (no running window => 1000 + group).
+    const l0 = testDockLayout(w, 2, -1); // unscaled centers
+    const c0: i32 = @intFromFloat(l0.app_start + l0.widths[0] / 2.0);
+    try std.testing.expectEqual(@as(i32, 1000), iconAt(w, 48, &tops, 0, c0));
+
+    const c1: i32 = @intFromFloat(l0.app_start + l0.widths[0] + PAD + l0.widths[1] / 2.0);
+    try std.testing.expectEqual(@as(i32, 1001), iconAt(w, 48, &tops, 0, c1));
+}
+
+test "dock iconAt maps running window" {
+    persistent_count = 0;
+    order_initialized = true;
+    @memcpy(&persistent_order[0], "foot" ++ ("\x00" ** 124));
+    persistent_count = 1;
+
+    var tops: [10]toplevel.ToplevelInfo = undefined;
+    for (0..10) |i| tops[i] = .{};
+    @memcpy(tops[0].app_id[0..4], "foot");
+
+    const w = 1920;
+    const l = testDockLayout(w, 1, -1);
+    const c0: i32 = @intFromFloat(l.app_start + l.widths[0] / 2.0);
+    // "foot" is running as tops[0], so it maps to toplevel index 0.
+    try std.testing.expectEqual(@as(i32, 0), iconAt(w, 48, &tops, 1, c0));
+}
+
+test "dock iconAt settings and launcher toggles" {
+    persistent_count = 0;
+    order_initialized = true;
+    @memcpy(&persistent_order[0], "foot" ++ ("\x00" ** 124));
+    @memcpy(&persistent_order[1], "firefox" ++ ("\x00" ** 121));
+    persistent_count = 2;
+
+    var tops: [10]toplevel.ToplevelInfo = undefined;
+    for (0..10) |i| tops[i] = .{};
+
+    const w = 1920;
+
+    // Settings toggle center: probe with mx at the settings icon center.
+    // Because widths depend on mx (gaussian), solve iteratively: the toggles are
+    // far from the apps so scaling there is ~1.0 regardless.
+    const l = testDockLayout(w, 2, 100000.0); // mx far away => all scales ~1.0
+    const settings_probe: i32 = @intFromFloat(l.settings_x + @as(f64, @floatFromInt(DOCK_ICON_SIZE)) / 2.0);
+    try std.testing.expectEqual(@as(i32, -2), iconAt(w, 48, &tops, 0, settings_probe));
+
+    const launcher_probe: i32 = @intFromFloat(l.launcher_x + @as(f64, @floatFromInt(DOCK_ICON_SIZE)) / 2.0);
+    try std.testing.expectEqual(@as(i32, -3), iconAt(w, 48, &tops, 0, launcher_probe));
 }
 
 test "dock groupAt logic" {
     persistent_count = 0;
     
     // Add 3 persistent groups
-    @memcpy(&persistent_order[0], "foot\x00" ** 123);
-    @memcpy(&persistent_order[1], "firefox\x00" ** 120);
-    @memcpy(&persistent_order[2], "geary\x00" ** 122);
+    @memcpy(&persistent_order[0], "foot" ++ ("\x00" ** 124));
+    @memcpy(&persistent_order[1], "firefox" ++ ("\x00" ** 121));
+    @memcpy(&persistent_order[2], "geary" ++ ("\x00" ** 123));
     persistent_count = 3;
 
-    var widths: [128]f64 = undefined;
-    widths[0] = 32.0;
-    widths[1] = 32.0;
-    widths[2] = 32.0;
+    const w: i32 = 1920;
+    const icon_sz: f64 = @floatFromInt(DOCK_ICON_SIZE);
+    const slot: f64 = icon_sz + PAD;
+    const unscaled_total: f64 = 3.0 * slot - PAD;
+    const start_x: f64 = @max(0, (@as(f64, @floatFromInt(w)) - unscaled_total) / 2.0);
 
-    // Test positions
-    const group0 = groupAt(0.0, &widths);
-    try std.testing.expectEqual(@as(i32, 0), group0);
+    // Hit group 0 (its unscaled center).
+    const c0: i32 = @intFromFloat(start_x + icon_sz / 2.0);
+    try std.testing.expectEqual(@as(i32, 0), groupAt(w, c0));
 
-    const group1 = groupAt(32.0 + PAD + 10.0, &widths); // Hit group 1
-    try std.testing.expectEqual(@as(i32, 1), group1);
+    // Hit group 1 (its unscaled center).
+    const c1: i32 = @intFromFloat(start_x + slot + icon_sz / 2.0);
+    try std.testing.expectEqual(@as(i32, 1), groupAt(w, c1));
 
-    const group_miss = groupAt(999.0, &widths);
-    try std.testing.expectEqual(@as(i32, -1), group_miss);
+    // Far to the left of the centered dock is a miss.
+    try std.testing.expectEqual(@as(i32, -1), groupAt(w, 0));
 }
 
 test "dock swapGroups logic" {
     persistent_count = 0;
-    @memcpy(&persistent_order[0], "A\x00" ** 126);
-    @memcpy(&persistent_order[1], "B\x00" ** 126);
-    @memcpy(&persistent_order[2], "C\x00" ** 126);
+    @memcpy(&persistent_order[0], "A" ++ ("\x00" ** 127));
+    @memcpy(&persistent_order[1], "B" ++ ("\x00" ** 127));
+    @memcpy(&persistent_order[2], "C" ++ ("\x00" ** 127));
     persistent_count = 3;
 
     swapGroups(0, 2);

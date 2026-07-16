@@ -6,8 +6,16 @@ const panel_mod = @import("panel.zig");
 const dock_mod = @import("dock.zig");
 const icon = @import("icon.zig");
 const damage = @import("shellcore").damage;
+const apps_mod = @import("apps");
+const shlog = @import("log");
 
-const PANEL_HEIGHT = 36;
+pub const std_options: std.Options = .{
+    .log_level = .debug,
+    .logFn = shlog.logFn,
+};
+
+const PANEL_HEIGHT = 24;
+const PANEL_SETTINGS_HEIGHT = 400;
 const DOCK_HEIGHT = 48;
 const MAX_TOPLEVELS = 64;
 const MAX_WIDGETS = 64;
@@ -50,6 +58,7 @@ const SurfaceState = struct {
 
 var panel_surface = SurfaceState{ .height = PANEL_HEIGHT };
 var dock_surface = SurfaceState{ .height = DOCK_HEIGHT };
+var launcher_surface = SurfaceState{ .height = 0 };
 var dirty = true;
 var running = true;
 var timer_fd: i32 = -1;
@@ -76,9 +85,16 @@ var pointer_x: i32 = 0;
 var pointer_y: i32 = 0;
 var pointer_on_panel = false;
 var pointer_on_dock = false;
+var pointer_on_launcher = false;
+var keyboard_focus_surface: ?*c.wl_surface = null;
 
 // ---- settings state ----
 var settings_open = false;
+
+// ---- app launcher state ----
+var launcher_open = false;
+var launcher_hover_idx: i32 = -1;
+var launcher_scroll: i32 = 0;
 
 // ==== WAYLAND CALLBACKS ====
 
@@ -228,6 +244,7 @@ fn pointerEnter(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, surface: ?*c.
     pointer_y = c.wl_fixed_to_int(y);
     pointer_on_panel = (surface == panel_surface.surface);
     pointer_on_dock = (surface == dock_surface.surface);
+    pointer_on_launcher = (surface == launcher_surface.surface);
     if (autohide_dock and pointer_on_dock) {
         if (dock_surface.layer_surface) |ls| {
             c.zwlr_layer_surface_v1_set_size(ls, 0, DOCK_HEIGHT);
@@ -250,6 +267,7 @@ fn pointerLeave(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, surface: ?*c.
     _ = surface;
     pointer_on_panel = false;
     pointer_on_dock = false;
+    pointer_on_launcher = false;
     dock_hover_idx = -1;
     if (autohide_dock) {
         if (dock_surface.layer_surface) |ls| {
@@ -283,6 +301,13 @@ fn pointerMotion(data: ?*anyopaque, p: ?*c.wl_pointer, time: u32, x: c.wl_fixed_
         }
         dirty = true;
     }
+    if (pointer_on_launcher and launcher_open) {
+        const new_idx = launcherItemAt(pointer_x, pointer_y);
+        if (new_idx != launcher_hover_idx) {
+            launcher_hover_idx = new_idx;
+            dirty = true;
+        }
+    }
 }
 
 fn pointerButton(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, time: u32, button: u32, state_w: u32) callconv(.c) void {
@@ -299,9 +324,13 @@ fn pointerButton(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, time: u32, b
     // Dock click — activate/minimize window
     if (pointer_on_dock) {
         drag_dock_group = dock_mod.groupAt(dock_surface.width, pointer_x);
+        if (dock_hover_idx == -3) {
+            toggleLauncher();
+            return;
+        }
         if (dock_hover_idx == -2) {
             settings_open = !settings_open;
-            c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, if (settings_open) 400 else 36);
+            c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, if (settings_open) PANEL_SETTINGS_HEIGHT else PANEL_HEIGHT);
             c.wl_surface_commit(panel_surface.surface);
             dirty = true;
             return;
@@ -325,13 +354,26 @@ fn pointerButton(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, time: u32, b
         return;
     }
 
+    // Launcher click — select an app entry
+    if (pointer_on_launcher and launcher_open) {
+        const idx = launcherItemAt(pointer_x, pointer_y);
+        if (idx >= 0) {
+            const list = apps_mod.list();
+            if (idx < list.len) {
+                launchApp(&list[@intCast(idx)]);
+            }
+            toggleLauncher(); // close after launch
+        }
+        return;
+    }
+
     // Panel click — handle widget clicks
     if (pointer_on_panel) {
         // Settings button click (gear icon at far right)
         const settings_x = panel_surface.width - 32;
-        if (pointer_y <= 36 and pointer_x >= settings_x and pointer_x < settings_x + 28) {
+        if (pointer_y <= PANEL_HEIGHT and pointer_x >= settings_x and pointer_x < settings_x + 28) {
             settings_open = !settings_open;
-            c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, if (settings_open) 400 else 36);
+            c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, if (settings_open) PANEL_SETTINGS_HEIGHT else PANEL_HEIGHT);
             c.wl_surface_commit(panel_surface.surface);
             dirty = true;
             return;
@@ -427,7 +469,19 @@ const pointer_listener = c.wl_pointer_listener{
     .leave = pointerLeave,
     .motion = pointerMotion,
     .button = pointerButton,
-    .axis = struct { fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32, _: u32, _: c.wl_fixed_t) callconv(.c) void {} }.f,
+    .axis = struct { fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32, _: u32, value: c.wl_fixed_t) callconv(.c) void {
+        if (pointer_on_launcher and launcher_open) {
+            const list = apps_mod.list();
+            const rows = launcherVisibleRows();
+            const max_start = if (list.len > @as(usize, @intCast(rows)) * @as(usize, LAUNCHER_COLS))
+                @as(i32, @intCast((list.len - @as(usize, @intCast(rows)) * @as(usize, LAUNCHER_COLS)) / @as(usize, LAUNCHER_COLS)))
+            else
+                0;
+            const delta: i32 = if (value > 0) 1 else -1;
+            launcher_scroll = @max(0, @min(max_start, launcher_scroll + delta));
+            dirty = true;
+        }
+    } }.f,
     .frame = struct { fn f(_: ?*anyopaque, _: ?*c.wl_pointer) callconv(.c) void {} }.f,
     .axis_source = struct { fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32) callconv(.c) void {} }.f,
     .axis_stop = struct { fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32, _: u32) callconv(.c) void {} }.f,
@@ -483,8 +537,8 @@ fn keyboardEnter(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, surface: ?
     _ = data;
     _ = kb;
     _ = serial;
-    _ = surface;
     _ = keys;
+    keyboard_focus_surface = surface;
     dirty = true;
 }
 
@@ -493,6 +547,7 @@ fn keyboardLeave(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, surface: ?
     _ = kb;
     _ = serial;
     _ = surface;
+    keyboard_focus_surface = null;
     dirty = true;
 }
 
@@ -501,8 +556,21 @@ fn keyboardKey(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, time: u32, k
     _ = kb;
     _ = serial;
     _ = time;
-    _ = key;
-    _ = state_w;
+    if (state_w != c.WL_KEYBOARD_KEY_STATE_PRESSED) return;
+    if (!launcher_open) return;
+    if (key == 9) {
+        // Escape closes the launcher
+        toggleLauncher();
+    } else if (key == 28) {
+        // Enter launches the hovered entry
+        if (launcher_hover_idx >= 0) {
+            const list = apps_mod.list();
+            if (launcher_hover_idx < list.len) {
+                launchApp(&list[@intCast(launcher_hover_idx)]);
+            }
+            toggleLauncher();
+        }
+    }
 }
 
 fn keyboardModifiers(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, mods_depressed: u32, mods_latched: u32, mods_locked: u32, group: u32) callconv(.c) void {
@@ -536,16 +604,25 @@ const keyboard_listener = c.wl_keyboard_listener{
 
 fn layerSurfaceConfigure(data: ?*anyopaque, surface: ?*c.zwlr_layer_surface_v1, serial: u32, w: u32, h: u32) callconv(.c) void {
     _ = data;
-    const ss = if (surface == panel_surface.layer_surface) &panel_surface else &dock_surface;
+    const ss = if (surface == panel_surface.layer_surface)
+        &panel_surface
+    else if (surface == launcher_surface.layer_surface)
+        &launcher_surface
+    else
+        &dock_surface;
     const wi: i32 = @intCast(w);
     const hi: i32 = @intCast(h);
-    if (wi != ss.width or hi != ss.height) {
+    if (wi != 0 and hi != 0 and (wi != ss.width or hi != ss.height)) {
         ss.width = wi;
         ss.height = hi;
         dirty = true;
     }
     c.zwlr_layer_surface_v1_ack_configure(surface, serial);
-    c.zwlr_layer_surface_v1_set_size(surface, 0, @intCast(ss.height));
+    // The launcher is a fixed-size floating panel; do not re-request its size
+    // here (that would fight toggleLauncher). Panel/dock keep their height.
+    if (surface != launcher_surface.layer_surface) {
+        c.zwlr_layer_surface_v1_set_size(surface, 0, @intCast(ss.height));
+    }
 }
 
 fn layerSurfaceClosed(data: ?*anyopaque, surface: ?*c.zwlr_layer_surface_v1) callconv(.c) void {
@@ -564,6 +641,11 @@ const dock_layer_listener = c.zwlr_layer_surface_v1_listener{
     .closed = layerSurfaceClosed,
 };
 
+const launcher_layer_listener = c.zwlr_layer_surface_v1_listener{
+    .configure = layerSurfaceConfigure,
+    .closed = layerSurfaceClosed,
+};
+
 fn frameDone(data: ?*anyopaque, cb: ?*c.wl_callback, time: u32) callconv(.c) void {
     _ = data;
     _ = time;
@@ -574,6 +656,9 @@ fn frameDone(data: ?*anyopaque, cb: ?*c.wl_callback, time: u32) callconv(.c) voi
     } else if (cb == dock_surface.frame_cb) {
         c.wl_callback_destroy(cb);
         dock_surface.frame_cb = null;
+    } else if (cb == launcher_surface.frame_cb) {
+        c.wl_callback_destroy(cb);
+        launcher_surface.frame_cb = null;
     }
 }
 
@@ -585,7 +670,9 @@ const frame_listener = c.wl_callback_listener{
 fn surfacePreferredScale(data: ?*anyopaque, surface: ?*c.wl_surface, scale: i32) callconv(.c) void {
     _ = data;
     if (scale <= 0) return;
-    const ss = if (surface == panel_surface.surface) &panel_surface else &dock_surface;
+    const ss = if (surface == panel_surface.surface) &panel_surface
+        else if (surface == dock_surface.surface) &dock_surface
+        else &launcher_surface;
     ss.scale = @intCast(scale);
     if (ss.surface) |s| c.wl_surface_set_buffer_scale(s, @intCast(ss.scale));
     dirty = true;
@@ -687,17 +774,27 @@ fn reloadWidgets() void {
 
 // ==== RENDERING ====
 
+const shm_log = std.log.scoped(.shm);
+
 fn createShmFd(size: usize) ?i32 {
     var name_buf: [19]u8 = "/tmp/wl_shm-XXXXXX".* ++ .{0};
     const name_z: [*:0]u8 = @ptrCast(&name_buf);
     const fd = c.mkstemp(name_z);
-    if (fd < 0) return null;
+    if (fd < 0) {
+        shm_log.err("mkstemp failed for SHM backing file (size={d}): errno {d}", .{ size, errno() });
+        return null;
+    }
     _ = c.unlink(name_z);
     if (c.ftruncate(fd, @intCast(size)) < 0) {
+        shm_log.err("ftruncate failed for SHM fd (size={d}): errno {d}", .{ size, errno() });
         _ = c.close(fd);
         return null;
     }
     return fd;
+}
+
+fn errno() c_int {
+    return std.c._errno().*;
 }
 
 fn ensureBuffer(ss: *SurfaceState) void {
@@ -720,9 +817,13 @@ fn ensureBuffer(ss: *SurfaceState) void {
     }
 
     if (ss.buffer == null) {
-        const fd = createShmFd(size) orelse return;
+        const fd = createShmFd(size) orelse {
+            shm_log.err("cannot allocate buffer ({d}x{d}, {d} bytes): SHM fd creation failed; surface will not render", .{ w, h, size });
+            return;
+        };
         const data_ptr = c.mmap(null, size, c.PROT_READ | c.PROT_WRITE, c.MAP_SHARED, fd, 0);
         if (data_ptr == c.MAP_FAILED) {
+            shm_log.err("mmap failed for buffer ({d}x{d}, {d} bytes): errno {d}; surface will not render", .{ w, h, size, errno() });
             _ = c.close(fd);
             return;
         }
@@ -731,6 +832,12 @@ fn ensureBuffer(ss: *SurfaceState) void {
         ss.buffer = c.wl_shm_pool_create_buffer(pool, 0, w, h, stride, c.WL_SHM_FORMAT_ARGB8888);
         c.wl_shm_pool_destroy(pool);
         _ = c.close(fd);
+        if (ss.buffer == null) {
+            shm_log.err("wl_shm_pool_create_buffer returned null ({d}x{d}); surface will not render", .{ w, h });
+            _ = c.munmap(ss.shm_data, size);
+            ss.shm_data = null;
+            return;
+        }
         ss.cairo_surface = c.cairo_image_surface_create_for_data(ss.shm_data, c.CAIRO_FORMAT_ARGB32, w, h, stride);
         ss.cairo_cr = c.cairo_create(ss.cairo_surface);
         c.cairo_scale(ss.cairo_cr, @floatFromInt(ss.scale), @floatFromInt(ss.scale));
@@ -746,8 +853,8 @@ fn renderPanel() void {
     const w = panel_surface.width;
     const t = &theme.current;
     
-    // Panel background (only top 36px)
-    const ph = 36;
+    // Panel background (compact bar)
+    const ph = PANEL_HEIGHT;
     const grad = c.cairo_pattern_create_linear(0, 0, 0, ph);
     c.cairo_pattern_add_color_stop_rgba(grad, 0.0, t.bg_color[0], t.bg_color[1], t.bg_color[2], t.bg_color[3]);
     c.cairo_pattern_add_color_stop_rgba(grad, 1.0, t.bg_gradient_end[0], t.bg_gradient_end[1], t.bg_gradient_end[2], t.bg_gradient_end[3]);
@@ -762,9 +869,9 @@ fn renderPanel() void {
     c.cairo_fill(cr);
 
     // Measure and layout widgets
-    const pad: i32 = 12;
+    const pad: i32 = 6;
     _ = panel_mod.widgetListWidth(widgets[0..@intCast(widget_count)], ph, pad);
-    const x0: i32 = 10;
+    const x0: i32 = 8;
 
     var left_w: i32 = 0;
     var right_w: i32 = 0;
@@ -822,7 +929,7 @@ fn drawSettingsButton(cr: *c.cairo_t, w: i32, h: i32) void {
     // Gear icon (Unicode cog)
     const layout = c.pango_cairo_create_layout(cr);
     defer c.g_object_unref(layout);
-    const font = c.pango_font_description_from_string("Sans 14");
+    const font = c.pango_font_description_from_string("Sans 11");
     defer c.pango_font_description_free(font);
     c.pango_layout_set_font_description(layout, font);
     c.pango_layout_set_text(layout, "⚙", -1);
@@ -911,9 +1018,181 @@ fn renderDock() void {
         dock_hover_idx,
         if (pointer_on_dock) @as(f64, @floatFromInt(pointer_x)) else -1.0,
     );
-    drawDockTooltip(dock_surface.cairo_cr.?, dock_surface.width, dock_surface.height);
+    if (dock_surface.cairo_cr) |cr| drawDockTooltip(cr, dock_surface.width, dock_surface.height);
     c.cairo_surface_flush(dock_surface.cairo_surface);
     dock_surface.dirty_region.add(0, 0, dock_surface.buf_width, dock_surface.buf_height);
+}
+
+// ---- App launcher (floating panel) ----
+
+const LAUNCHER_W: i32 = 520;
+const LAUNCHER_H: i32 = 420;
+const LAUNCHER_COLS: i32 = 2;
+const LAUNCHER_ROW_H: i32 = 56;
+const LAUNCHER_X: i32 = 24;
+const LAUNCHER_PAD: i32 = 12;
+
+fn toggleLauncher() void {
+    launcher_open = !launcher_open;
+    if (launcher_open) {
+        apps_mod.scan();
+        launcher_scroll = 0;
+        launcher_hover_idx = -1;
+        launcher_surface.width = LAUNCHER_W;
+        launcher_surface.height = LAUNCHER_H;
+
+        // Lazily create the launcher layer surface the first time it opens.
+        if (launcher_surface.surface == null) {
+            launcher_surface.surface = c.wl_compositor_create_surface(compositor);
+            _ = c.wl_surface_add_listener(launcher_surface.surface, &surface_listener, null);
+        }
+        if (launcher_surface.layer_surface == null) {
+            launcher_surface.layer_surface = c.zwlr_layer_shell_v1_get_layer_surface(
+                layer_shell,
+                launcher_surface.surface,
+                null,
+                c.ZWLR_LAYER_SHELL_V1_LAYER_TOP,
+                "zigshell-cairo-pango-launcher",
+            );
+            _ = c.zwlr_layer_surface_v1_add_listener(launcher_surface.layer_surface, &launcher_layer_listener, null);
+            const launcher_anchor = c.ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
+                c.ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT |
+                c.ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
+            c.zwlr_layer_surface_v1_set_anchor(launcher_surface.layer_surface, launcher_anchor);
+            c.zwlr_layer_surface_v1_set_size(launcher_surface.layer_surface, LAUNCHER_W, LAUNCHER_H);
+            c.zwlr_layer_surface_v1_set_exclusive_zone(launcher_surface.layer_surface, 0);
+            c.zwlr_layer_surface_v1_set_keyboard_interactivity(launcher_surface.layer_surface, 1);
+            c.wl_surface_commit(launcher_surface.surface);
+        }
+    } else {
+        launcher_surface.width = 0;
+        launcher_surface.height = 0;
+        // Fully destroy the launcher surface to unmap it. It is recreated on the
+        // next open. This avoids illegal 0x0 size requests on the layer surface.
+        if (launcher_surface.frame_cb) |cb| {
+            c.wl_callback_destroy(cb);
+            launcher_surface.frame_cb = null;
+        }
+        if (launcher_surface.layer_surface) |ls| {
+            c.zwlr_layer_surface_v1_destroy(ls);
+            launcher_surface.layer_surface = null;
+        }
+        if (launcher_surface.surface) |s| {
+            c.wl_surface_destroy(s);
+            launcher_surface.surface = null;
+        }
+    }
+    dirty = true;
+}
+
+fn launcherVisibleRows() i32 {
+    const area = LAUNCHER_H - LAUNCHER_PAD * 2;
+    return area / LAUNCHER_ROW_H;
+}
+
+fn launcherItemAt(mx: i32, my: i32) i32 {
+    if (!launcher_open) return -1;
+    const list = apps_mod.list();
+    const rows = launcherVisibleRows();
+    const start = @as(usize, @intCast(launcher_scroll)) * @as(usize, LAUNCHER_COLS);
+    var col: i32 = 0;
+    var row: i32 = 0;
+    var idx: usize = start;
+    while (col < LAUNCHER_COLS) : (col += 1) {
+        row = 0;
+        while (row < rows) : (row += 1) {
+            if (idx >= list.len) return -1;
+            const y = LAUNCHER_PAD + row * LAUNCHER_ROW_H;
+            if (my >= y and my < y + LAUNCHER_ROW_H - 4) {
+                if (mx >= LAUNCHER_X + col * (LAUNCHER_W / 2) and mx < LAUNCHER_X + col * (LAUNCHER_W / 2) + (LAUNCHER_W / 2 - LAUNCHER_PAD)) {
+                    return @intCast(idx);
+                }
+            }
+            idx += 1;
+        }
+    }
+    return -1;
+}
+
+fn launchApp(entry: *const apps_mod.AppEntry) void {
+    const name = entry.name[0..entry.name_len];
+    const exec = entry.exec[0..entry.exec_len];
+    std.log.info("launcher: launching {s} -> {s}", .{ name, exec });
+    var buf: [1024]u8 = undefined;
+    const cmd = std.fmt.bufPrintZ(&buf, "{s} &", .{exec}) catch |err| {
+        std.log.err("exec format error for {s}: {}", .{ name, err });
+        return;
+    };
+    const rc = c.system(@ptrCast(cmd));
+    if (rc == -1) {
+        std.log.err("launcher: failed to start shell for {s} ({s})", .{ name, exec });
+    } else if (rc != 0) {
+        std.log.warn("launcher: {s} exited with status {d}", .{ name, rc });
+    }
+}
+
+fn renderLauncher() void {
+    if (!launcher_open or launcher_surface.height <= 0) return;
+    ensureBuffer(&launcher_surface);
+    const cr = launcher_surface.cairo_cr orelse return;
+    const w = launcher_surface.width;
+    const h = launcher_surface.height;
+    const t = &theme.current;
+
+    // Background
+    c.cairo_set_source_rgba(cr, t.bg_color[0], t.bg_color[1], t.bg_color[2], 0.97);
+    c.cairo_rectangle(cr, 0, 0, w, h);
+    c.cairo_fill(cr);
+    theme.setSource(cr, t.border_color);
+    c.cairo_rectangle(cr, 0.5, 0.5, @floatFromInt(w - 1), @floatFromInt(h - 1));
+    c.cairo_set_line_width(cr, 1);
+    c.cairo_stroke(cr);
+
+    // Title
+    _ = panel_mod.widgetText(cr, "Applications", LAUNCHER_X, 26, "Sans Bold 13", t.text_color[0], t.text_color[1], t.text_color[2]);
+
+    const list = apps_mod.list();
+    const rows = launcherVisibleRows();
+    const max_show = @as(usize, @intCast(rows)) * @as(usize, LAUNCHER_COLS);
+    const start = @as(usize, @intCast(launcher_scroll)) * @as(usize, LAUNCHER_COLS);
+    const end = @min(start + max_show, list.len);
+
+    var col: i32 = 0;
+    var row: i32 = 0;
+    var idx: usize = start;
+    while (idx < end) : (idx += 1) {
+        const e = &list[idx];
+        const name = e.name[0..e.name_len];
+        const icon_name = e.icon[0..e.icon_len];
+        const cx = LAUNCHER_X + col * @divTrunc(w, 2);
+        const cy = LAUNCHER_PAD + row * LAUNCHER_ROW_H + 6;
+
+        if (launcher_hover_idx == @as(i32, @intCast(idx))) {
+            theme.setSource(cr, t.hover_color);
+            c.cairo_rectangle(cr, @floatFromInt(cx - 4), @floatFromInt(cy - 4), @floatFromInt(@divTrunc(w, 2) - LAUNCHER_PAD), @floatFromInt(LAUNCHER_ROW_H - 8));
+            c.cairo_fill(cr);
+        }
+
+        const surf = icon.load(@ptrCast(icon_name.ptr), 32);
+        c.cairo_set_source_surface(cr, surf, @floatFromInt(cx), @floatFromInt(cy));
+        c.cairo_paint(cr);
+
+        const tx = cx + 40;
+        const ty = cy + 12;
+        _ = panel_mod.widgetText(cr, @ptrCast(name), tx, ty, "Sans 11", t.text_color[0], t.text_color[1], t.text_color[2]);
+        if (!e.from_desktop) {
+            _ = panel_mod.widgetText(cr, "executable", tx, ty + 16, "Sans 9", t.text_dim_color[0], t.text_dim_color[1], t.text_dim_color[2]);
+        }
+
+        col += 1;
+        if (col >= LAUNCHER_COLS) {
+            col = 0;
+            row += 1;
+        }
+    }
+
+    c.cairo_surface_flush(launcher_surface.cairo_surface);
+    launcher_surface.dirty_region.add(0, 0, launcher_surface.buf_width, launcher_surface.buf_height);
 }
 
 fn drawDockTooltip(cr: *c.cairo_t, surf_w: i32, surf_h: i32) void {
@@ -983,8 +1262,12 @@ pub fn main() !void {
         _ = c.wl_display_roundtrip(display);
     }
 
-    // Load default widgets
-    const defaults = panel_mod.widgetCreateDefault();
+    // Load widgets: compact mode if OCWS_PANEL_COMPACT=1, else full default
+    const use_compact = if (c.getenv("OCWS_PANEL_COMPACT")) |v| blk: {
+        const s = std.mem.span(v);
+        break :blk std.mem.eql(u8, s, "1");
+    } else false;
+    const defaults = if (use_compact) panel_mod.widgetCreateCompact() else panel_mod.widgetCreateDefault();
     for (0..@intCast(defaults.count)) |i| {
         widgets[i] = defaults.widgets[i];
     }
@@ -994,15 +1277,22 @@ pub fn main() !void {
         .toplevels = &toplevels,
         .count = &toplevel_count,
         .seat = seat,
+        .panel_height = PANEL_HEIGHT,
     };
 
     // Create panel surface (TOP)
-    panel_surface.surface = c.wl_compositor_create_surface(compositor);
+    panel_surface.surface = c.wl_compositor_create_surface(compositor) orelse {
+        std.log.err("zigshell-cairo-pango: wl_compositor_create_surface failed for panel", .{});
+        return error.SurfaceCreateFailed;
+    };
     _ = c.wl_surface_add_listener(panel_surface.surface, &surface_listener, null);
     panel_surface.layer_surface = c.zwlr_layer_shell_v1_get_layer_surface(
         layer_shell, panel_surface.surface, null,
         c.ZWLR_LAYER_SHELL_V1_LAYER_TOP, "zigshell-cairo-pango-panel",
-    );
+    ) orelse {
+        std.log.err("zigshell-cairo-pango: get_layer_surface failed for panel", .{});
+        return error.LayerSurfaceCreateFailed;
+    };
     _ = c.zwlr_layer_surface_v1_add_listener(panel_surface.layer_surface, &panel_layer_listener, null);
 
     const panel_anchor = c.ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP |
@@ -1020,12 +1310,18 @@ pub fn main() !void {
     c.wl_surface_commit(panel_surface.surface);
 
     // Create dock surface (BOTTOM)
-    dock_surface.surface = c.wl_compositor_create_surface(compositor);
+    dock_surface.surface = c.wl_compositor_create_surface(compositor) orelse {
+        std.log.err("zigshell-cairo-pango: wl_compositor_create_surface failed for dock", .{});
+        return error.SurfaceCreateFailed;
+    };
     _ = c.wl_surface_add_listener(dock_surface.surface, &surface_listener, null);
     dock_surface.layer_surface = c.zwlr_layer_shell_v1_get_layer_surface(
         layer_shell, dock_surface.surface, null,
         c.ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM, "zigshell-cairo-pango-dock",
-    );
+    ) orelse {
+        std.log.err("zigshell-cairo-pango: get_layer_surface failed for dock", .{});
+        return error.LayerSurfaceCreateFailed;
+    };
     _ = c.zwlr_layer_surface_v1_add_listener(dock_surface.layer_surface, &dock_layer_listener, null);
 
     const dock_anchor = c.ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM |
@@ -1037,6 +1333,11 @@ pub fn main() !void {
     c.zwlr_layer_surface_v1_set_keyboard_interactivity(dock_surface.layer_surface, 0);
     c.wl_surface_commit(dock_surface.surface);
 
+    // The app-launcher layer surface is created lazily (on first open) by
+    // toggleLauncher(). Creating/committing it at init with a hidden state is
+    // error-prone under wlr-layer-shell (a 0-height commit is a protocol
+    // error), so we defer it entirely until the user opens the launcher.
+
     // Wait for initial configure
     var ret: i32 = 0;
     while (panel_surface.width == 0 and ret >= 0 and c.wl_display_get_error(display) == 0) {
@@ -1044,8 +1345,8 @@ pub fn main() !void {
     }
 
     if (c.wl_display_get_error(display) != 0) {
-        std.log.err("zigshell-cairo-pango: Wayland protocol error during init", .{});
-        running = false;
+        std.log.err("zigshell-cairo-pango: Wayland protocol error during init (code {d}, errno {d}); aborting", .{ c.wl_display_get_error(display), errno() });
+        return error.WaylandProtocolError;
     }
 
     if (panel_surface.width == 0) panel_surface.width = 1920;
@@ -1099,10 +1400,15 @@ pub fn main() !void {
             renderDock();
             submitSurface(&dock_surface);
 
+            if (launcher_open) {
+                renderLauncher();
+                submitSurface(&launcher_surface);
+            }
+
             dirty = false;
         }
 
-        _ = c.wl_display_flush(display);
+        if (c.wl_display_flush(display) < 0) { running = false; continue; }
 
         pfds[0].fd = wl_fd;
         pfds[0].events = c.POLLIN;
@@ -1144,8 +1450,22 @@ pub fn main() !void {
     if (dock_surface.layer_surface) |ls| c.zwlr_layer_surface_v1_destroy(ls);
     if (dock_surface.surface) |s| c.wl_surface_destroy(s);
 
+    if (launcher_surface.buffer) |b| c.wl_buffer_destroy(b);
+    if (launcher_surface.cairo_cr) |cr| c.cairo_destroy(cr);
+    if (launcher_surface.cairo_surface) |s| c.cairo_surface_destroy(s);
+    if (launcher_surface.shm_data) |d| _ = c.munmap(d, launcher_surface.buf_size);
+    if (launcher_surface.frame_cb) |cb| c.wl_callback_destroy(cb);
+    if (launcher_surface.layer_surface) |ls| c.zwlr_layer_surface_v1_destroy(ls);
+    if (launcher_surface.surface) |s| c.wl_surface_destroy(s);
+
     icon.clearCache();
     if (display) |d| _ = c.wl_display_disconnect(d);
 
     std.log.info("zigshell-cairo-pango: exiting", .{});
+}
+comptime {
+    _ = @import("dock.zig");
+    _ = @import("icon.zig");
+    _ = @import("panel.zig");
+    _ = @import("theme.zig");
 }

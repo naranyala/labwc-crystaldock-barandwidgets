@@ -28,6 +28,24 @@ pub fn build(b: *std.Build) void {
     });
     root_mod.addImport("shellcore", shellcore);
 
+    // Shared app catalog (launcher) module.
+    const apps = b.createModule(.{
+        .root_source_file = b.path("../shared/apps.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("apps", apps);
+
+    // Shared logging configuration (env-controlled level, custom logFn).
+    const log_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/log.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("log", log_mod);
+
     linkDeps(root_mod, b);
     addProtocolSources(root_mod, b, c_flags);
 
@@ -48,6 +66,29 @@ pub fn build(b: *std.Build) void {
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    // Shared app-catalog module tests (parsing, dedup, field codes).
+    const apps_tests_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/apps.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    const apps_unit_tests = b.addTest(.{ .root_module = apps_tests_mod });
+    const run_apps_unit_tests = b.addRunArtifact(apps_unit_tests);
+    test_step.dependOn(&run_apps_unit_tests.step);
+
+    // Public-API app-catalog tests (shared with the blend2d shell).
+    const apps_api_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/apps_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    apps_api_mod.addImport("apps", apps);
+    const apps_api_tests = b.addTest(.{ .root_module = apps_api_mod });
+    const run_apps_api_tests = b.addRunArtifact(apps_api_tests);
+    test_step.dependOn(&run_apps_api_tests.step);
 }
 
 fn linkDeps(root_mod: *std.Build.Module, b: *std.Build) void {

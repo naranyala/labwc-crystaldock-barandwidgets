@@ -75,12 +75,12 @@ test "add — multiple elements" {
     try std.testing.expectEqual(@as(?*anyopaque, @ptrFromInt(0x3000)), infos[2].handle);
 }
 
-test "add — at capacity returns 0" {
+test "add — at capacity returns sentinel" {
     var infos: [toplevel.MAX_TOPLEVELS]toplevel.ToplevelInfo = undefined;
     var count: i32 = toplevel.MAX_TOPLEVELS;
 
     const idx = toplevel.add(&infos, &count, @ptrFromInt(0x1000));
-    try std.testing.expectEqual(@as(usize, 0), idx);
+    try std.testing.expectEqual(@as(usize, std.math.maxInt(usize)), idx);
     try std.testing.expectEqual(@as(i32, toplevel.MAX_TOPLEVELS), count);
 }
 

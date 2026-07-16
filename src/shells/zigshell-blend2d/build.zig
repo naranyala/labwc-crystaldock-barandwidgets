@@ -41,6 +41,54 @@ pub fn build(b: *std.Build) void {
     });
     root_mod.addImport("shellcore", shellcore);
 
+    // Shared app catalog (launcher) module.
+    const apps = b.createModule(.{
+        .root_source_file = b.path("../shared/apps.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("apps", apps);
+
+    // Shared logging configuration (env-controlled level, custom logFn).
+    const log_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/log.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("log", log_mod);
+
+    // Apps scanner tests (pure logic, no Blend2D dependency)
+    const apps_test_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/apps_test.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    apps_test_mod.addImport("apps", apps);
+    const apps_tests = b.addTest(.{ .root_module = apps_test_mod });
+    const run_apps_tests = b.addRunArtifact(apps_tests);
+
+    // Apps internal tests (private parsing/dedup/field-code logic, run in-module)
+    const apps_internal_mod = b.createModule(.{
+        .root_source_file = b.path("../shared/apps.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    const apps_internal_tests = b.addTest(.{ .root_module = apps_internal_mod });
+    const run_apps_internal_tests = b.addRunArtifact(apps_internal_tests);
+
+    // Launcher math tests (pure logic, no dependencies)
+    const launcher_test_mod = b.createModule(.{
+        .root_source_file = b.path("src/launcher_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const launcher_tests = b.addTest(.{ .root_module = launcher_test_mod });
+    const run_launcher_tests = b.addRunArtifact(launcher_tests);
+
     const exe = b.addExecutable(.{
         .name = "zigshell-blend2d",
         .root_module = root_mod,
@@ -266,6 +314,9 @@ pub fn build(b: *std.Build) void {
     test_all.dependOn(&run_render_tests.step);
     test_all.dependOn(&run_icon_tests.step);
     test_all.dependOn(&run_panel_draw_tests.step);
+    test_all.dependOn(&run_apps_tests.step);
+    test_all.dependOn(&run_apps_internal_tests.step);
+    test_all.dependOn(&run_launcher_tests.step);
 
     // Individual test targets
     const test_toplevel = b.step("test-toplevel", "Run toplevel tests");
@@ -285,6 +336,13 @@ pub fn build(b: *std.Build) void {
 
     const test_panel_draw = b.step("test-panel-draw", "Run panel draw C function tests");
     test_panel_draw.dependOn(&run_panel_draw_tests.step);
+
+    const test_apps = b.step("test-apps", "Run apps scanner tests");
+    test_apps.dependOn(&run_apps_tests.step);
+    test_apps.dependOn(&run_apps_internal_tests.step);
+
+    const test_launcher = b.step("test-launcher", "Run launcher math tests");
+    test_launcher.dependOn(&run_launcher_tests.step);
 }
 
 fn addProtocolSources(root_mod: *std.Build.Module, b: *std.Build, c_flags: []const []const u8) void {

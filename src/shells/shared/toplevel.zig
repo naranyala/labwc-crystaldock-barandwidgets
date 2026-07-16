@@ -27,7 +27,7 @@ pub fn findIndex(infos: []ToplevelInfo, count: i32, handle: ?*anyopaque) i32 {
 }
 
 pub fn add(infos: []ToplevelInfo, count: *i32, handle: ?*anyopaque) usize {
-    if (count.* >= MAX_TOPLEVELS) return 0;
+    if (count.* >= MAX_TOPLEVELS) return std.math.maxInt(usize);
     const idx: usize = @intCast(count.*);
     count.* += 1;
     infos[idx] = .{ .handle = handle };

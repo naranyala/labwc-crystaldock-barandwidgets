@@ -88,7 +88,7 @@ pub fn mem(out: []u8) void {
     if (total > 0) {
         const used = total - avail;
         const pct: i64 = @divTrunc(100 * used, total);
-        _ = std.fmt.bufPrintZ(out, "MEM {d}%", .{pct}) catch {};
+        _ = std.fmt.bufPrintZ(out, "MEM {d}%", .{pct}) catch |err| std.log.err("MEM format error: {}", .{err});
     }
 }
 
@@ -105,14 +105,14 @@ fn parseKb(line: []const u8) i64 {
 pub fn temp(out: []u8) void {
     var raw: [32]u8 = undefined;
     const data = readFileInto("/sys/class/thermal/thermal_zone0/temp", &raw) orelse {
-        _ = std.fmt.bufPrintZ(out, "--\u{00b0}C", .{}) catch {};
+        _ = std.fmt.bufPrintZ(out, "--\u{00b0}C", .{}) catch |err| std.log.err("temp format error: {}", .{err});
         return;
     };
     const mt = std.fmt.parseInt(i32, trimLine(data), 10) catch -1;
     if (mt > 0) {
-        _ = std.fmt.bufPrintZ(out, "{d}\u{00b0}C", .{@divTrunc(mt, 1000)}) catch {};
+        _ = std.fmt.bufPrintZ(out, "{d}\u{00b0}C", .{@divTrunc(mt, 1000)}) catch |err| std.log.err("temp format error: {}", .{err});
     } else {
-        _ = std.fmt.bufPrintZ(out, "--\u{00b0}C", .{}) catch {};
+        _ = std.fmt.bufPrintZ(out, "--\u{00b0}C", .{}) catch |err| std.log.err("temp format error: {}", .{err});
     }
 }
 
@@ -136,9 +136,9 @@ pub fn battery(out: []u8, lvl: *i32, charging: *bool) void {
     if (lvl.* < 0) {
         writeZ(out, "BAT ?");
     } else if (charging.*) {
-        _ = std.fmt.bufPrintZ(out, "+{d}%", .{lvl.*}) catch writeZ(out, "BAT ?");
+        _ = std.fmt.bufPrintZ(out, "+{d}%", .{lvl.*}) catch |err| std.log.err("BAT format error: {}", .{err});
     } else {
-        _ = std.fmt.bufPrintZ(out, "{d}%", .{lvl.*}) catch writeZ(out, "BAT ?");
+        _ = std.fmt.bufPrintZ(out, "{d}%", .{lvl.*}) catch |err| std.log.err("BAT format error: {}", .{err});
     }
 }
 

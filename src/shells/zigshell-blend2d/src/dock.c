@@ -9,6 +9,7 @@
 int dock_icon_size = 28;
 
 #define FOCUS_BAR_H 3
+#define SIDE_PAD 12
 
 static int icon_x(int slot_idx, int start_x) {
     return start_x + slot_idx * (dock_icon_size + DOCK_PAD);
@@ -32,6 +33,7 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
     int start_x = (w - total_w) / 2;
     if (start_x < 0) start_x = 0;
 
+    // Draw app icons
     for (int i = 0; i < top_count; i++) {
         int x = icon_x(i, start_x);
 
@@ -71,6 +73,27 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
                 (double)(dock_icon_size - 4), (double)FOCUS_BAR_H, 0xFF4C7FBF);
         }
     }
+
+    // ---- Separated bar: settings + app-launcher toggles ----
+    // A vertical divider separates the running-app icons from the fixed
+    // toggles, which are placed like pinned icons on the right.
+    int icon_right = start_x + total_w;
+    int toggle_start = icon_right + DOCK_PAD;
+    int divider_x = icon_right + DOCK_PAD / 2;
+    blend_renderer_fill_rect(renderer, (double)divider_x, 6, 1, h - 12, 0xFF404045);
+
+    // Settings toggle
+    struct BLImageCore settings_img = {0};
+    if (icon_load("preferences-system", dock_icon_size, &settings_img)) {
+        blend_renderer_draw_image(renderer, &settings_img, (double)toggle_start, (double)cy);
+    }
+
+    // App launcher toggle
+    int launcher_toggle_x = toggle_start + dock_icon_size + DOCK_PAD;
+    struct BLImageCore launcher_img = {0};
+    if (icon_load("system-search", dock_icon_size, &launcher_img)) {
+        blend_renderer_draw_image(renderer, &launcher_img, (double)launcher_toggle_x, (double)cy);
+    }
 }
 
 int dock_icon_at(int w, int h, int top_count, int mouse_x) {
@@ -80,6 +103,19 @@ int dock_icon_at(int w, int h, int top_count, int mouse_x) {
     int start_x = (w - total_w) / 2;
     if (start_x < 0) start_x = 0;
 
+    // Separated-bar toggles (settings + launcher), to the right of the apps.
+    int icon_right = start_x + total_w;
+    int toggle_start = icon_right + DOCK_PAD;
+    int settings_x = toggle_start;
+    int launcher_x = settings_x + slot;
+    if (mouse_x >= launcher_x && mouse_x < launcher_x + dock_icon_size + DOCK_PAD) {
+        return -3; // launcher toggle
+    }
+    if (mouse_x >= settings_x && mouse_x < settings_x + dock_icon_size + DOCK_PAD) {
+        return -2; // settings toggle
+    }
+
+    // Check app icons
     for (int i = 0; i < top_count; i++) {
         int x = icon_x(i, start_x);
         if (mouse_x >= x && mouse_x < x + dock_icon_size + DOCK_PAD) return i;

@@ -6,6 +6,25 @@ const icon = @import("icon.zig");
 
 const MAX_WIDGETS = 64;
 
+const spawn_log = std.log.scoped(.spawn);
+
+/// Run a shell command via c.system, logging a diagnostic when the shell
+/// cannot be started or the command exits non-zero. Widget actions are
+/// fire-and-forget (most append '&'), so we only surface failures — we never
+/// block or propagate. Returns true when the command was launched cleanly.
+fn spawn(cmd: [*c]const u8) bool {
+    const rc = c.system(cmd);
+    if (rc == -1) {
+        spawn_log.err("failed to start shell for command: {s}", .{std.mem.sliceTo(cmd, 0)});
+        return false;
+    }
+    if (rc != 0) {
+        spawn_log.warn("command exited with status {d}: {s}", .{ rc, std.mem.sliceTo(cmd, 0) });
+        return false;
+    }
+    return true;
+}
+
 // ---- Widget System ----
 
 pub const WidgetType = enum {
@@ -119,7 +138,7 @@ pub const PanelCtx = struct {
     toplevels: []toplevel.ToplevelInfo,
     count: *i32,
     seat: ?*c.wl_seat,
-    panel_height: i32 = 36,
+    panel_height: i32 = 24,
 };
 
 // ---- Text Rendering Helpers ----
@@ -149,14 +168,14 @@ fn wsClick(w: *Widget, btn: u32, _: i32, _: i32) bool {
     _ = w;
     if (btn != 1) return false;
     // Click on workspace label switches workspace via wlrctl or swaymsg
-    _ = c.system("wlrctl workgroup next");
+    _ = spawn("wlrctl workgroup next");
     return true;
 }
 
 fn tlMeasure(w: *Widget, h: i32) i32 {
     if (w.priv == null) return 0;
     const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
-    const icon_size = h - 12;
+    const icon_size = h - 6;
     if (ctx.count.* == 0) return 0;
     return ctx.count.* * (icon_size + 4);
 }
@@ -164,7 +183,7 @@ fn tlMeasure(w: *Widget, h: i32) i32 {
 fn tlDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
     if (w.priv == null) return;
     const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
-    const icon_size = h - 12;
+    const icon_size = h - 6;
     const cy = y + @divTrunc(h - icon_size, 2);
 
     for (0..@intCast(ctx.count.*)) |i| {
@@ -191,7 +210,7 @@ fn tlClick(w: *Widget, btn: u32, lx: i32, ly: i32) bool {
     _ = ly;
     if (w.priv == null) return false;
     const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
-    const icon_size = ctx.panel_height - 12;
+    const icon_size = ctx.panel_height - 6;
     const idx = @divTrunc(lx, icon_size + 4);
     if (idx >= 0 and idx < ctx.count.*) {
         const handle: ?*c.zwlr_foreign_toplevel_handle_v1 = @ptrCast(@alignCast(ctx.toplevels[@intCast(idx)].handle));
@@ -224,7 +243,7 @@ fn launcherClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = y;
     if (btn != 1) return false;
     // Launch the command (fuzzel by default)
-    _ = c.system(@ptrCast(&w.cmd));
+    _ = spawn(@ptrCast(&w.cmd));
     return true;
 }
 
@@ -272,7 +291,7 @@ fn cpuClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("foot btop &");
+    _ = spawn("foot btop &");
     return true;
 }
 
@@ -311,7 +330,7 @@ fn memClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("foot htop &");
+    _ = spawn("foot htop &");
     return true;
 }
 
@@ -336,7 +355,7 @@ fn tempClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("foot sensors &");
+    _ = spawn("foot sensors &");
     return true;
 }
 
@@ -357,7 +376,7 @@ fn diskClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("pcmanfm-qt &");
+    _ = spawn("pcmanfm-qt &");
     return true;
 }
 
@@ -407,7 +426,7 @@ fn batClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("foot upower -i /org/freedesktop/UPower/devices/battery_BAT0 &");
+    _ = spawn("foot upower -i /org/freedesktop/UPower/devices/battery_BAT0 &");
     return true;
 }
 
@@ -428,9 +447,9 @@ fn volClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = y;
     if (btn != 1) return false;
     if (w.vol_mute) {
-        _ = c.system("pactl set-sink-mute @DEFAULT_SINK@ 0 &");
+        _ = spawn("pactl set-sink-mute @DEFAULT_SINK@ 0 &");
     } else {
-        _ = c.system("pactl set-sink-mute @DEFAULT_SINK@ 1 &");
+        _ = spawn("pactl set-sink-mute @DEFAULT_SINK@ 1 &");
     }
     return true;
 }
@@ -462,7 +481,9 @@ fn netUpdate(w: *Widget) void {
         }
         w.net_hist_rx[15] = rx_kb;
         w.net_hist_tx[15] = tx_kb;
-        _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0} KB/s", .{ rx_kb, tx_kb }) catch {};
+        _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0} KB/s", .{ rx_kb, tx_kb }) catch |err| {
+            std.log.err("net text format error: {}", .{err});
+        };
     }
     w.net_rx_prev = rx;
     w.net_tx_prev = tx;
@@ -503,7 +524,7 @@ fn netClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("nm-applet &");
+    _ = spawn("nm-applet &");
     return true;
 }
 
@@ -525,7 +546,7 @@ fn mediaClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("playerctl play-pause &");
+    _ = spawn("playerctl play-pause &");
     return true;
 }
 
@@ -545,7 +566,7 @@ fn clkClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system("foot calcurse &");
+    _ = spawn("foot calcurse &");
     return true;
 }
 
@@ -565,7 +586,7 @@ fn pwrClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system(@ptrCast(&w.cmd));
+    _ = spawn(@ptrCast(&w.cmd));
     return true;
 }
 
@@ -645,8 +666,10 @@ fn kbClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     @memcpy(layout[0..n], w.kb_txt[0..n]);
     layout[n] = 0;
     var cmd: [128]u8 = std.mem.zeroes([128]u8);
-    _ = std.fmt.bufPrintZ(&cmd, "setxkbmap -layout {s} &", .{std.mem.sliceTo(&layout, 0)}) catch {};
-    _ = c.system(@ptrCast(&cmd));
+    _ = std.fmt.bufPrintZ(&cmd, "setxkbmap -layout {s} &", .{std.mem.sliceTo(&layout, 0)}) catch |err| {
+        std.log.err("layout cmd format error: {}", .{err});
+    };
+    _ = spawn(@ptrCast(&cmd));
     return true;
 }
 
@@ -660,17 +683,20 @@ fn ccMeasure(w: *Widget, h: i32) i32 {
 fn ccUpdate(w: *Widget) void {
     // Run command, capture first line of stdout into cc_out.
     var tmpl: [32]u8 = std.mem.zeroes([32]u8);
-    _ = std.fmt.bufPrintZ(&tmpl, "/tmp/.zigshell-cc-XXXXXX", .{}) catch {};
+    _ = std.fmt.bufPrintZ(&tmpl, "/tmp/.zigshell-cc-XXXXXX", .{}) catch |err| {
+        std.log.err("tmpl cmd format error: {}", .{err});
+    };
     const fd = c.mkstemp(@ptrCast(&tmpl));
     if (fd < 0) return;
     _ = c.close(fd);
     var cmd: [320]u8 = std.mem.zeroes([320]u8);
     const cmd_slice = std.mem.sliceTo(&w.cmd, 0);
-    _ = std.fmt.bufPrintZ(&cmd, "sh -c '{s}' > '{s}' 2>/dev/null", .{ cmd_slice, std.mem.sliceTo(&tmpl, 0) }) catch {
+    _ = std.fmt.bufPrintZ(&cmd, "sh -c '{s}' > '{s}' 2>/dev/null", .{ cmd_slice, std.mem.sliceTo(&tmpl, 0) }) catch |err| {
+        std.log.err("sh cmd format error: {}", .{err});
         _ = c.unlink(&tmpl);
         return;
     };
-    _ = c.system(@ptrCast(&cmd));
+    _ = spawn(@ptrCast(&cmd));
     const f = c.fopen(@ptrCast(&tmpl), "r") orelse {
         _ = c.unlink(@ptrCast(&tmpl));
         return;
@@ -722,7 +748,7 @@ fn sdClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn != 1) return false;
-    _ = c.system(@ptrCast(&w.cmd));
+    _ = spawn(@ptrCast(&w.cmd));
     return true;
 }
 
@@ -796,7 +822,8 @@ fn blUpdate(w: *Widget) void {
         return;
     }
     var path: [320]u8 = std.mem.zeroes([320]u8);
-    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/brightness", .{chosen[0..chosen_len]}) catch {
+    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/brightness", .{chosen[0..chosen_len]}) catch |err| {
+        std.log.err("bl path format error: {}", .{err});
         w.bl_lvl = -1;
         return;
     };
@@ -808,7 +835,8 @@ fn blUpdate(w: *Widget) void {
     var cur: i32 = 0;
     _ = c.fscanf(fb, "%d", &cur);
 
-    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/max_brightness", .{chosen[0..chosen_len]}) catch {
+    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/max_brightness", .{chosen[0..chosen_len]}) catch |err| {
+        std.log.err("bl max path format error: {}", .{err});
         w.bl_lvl = -1;
         return;
     };
@@ -843,7 +871,9 @@ fn blDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
     }
     var txt: [16]u8 = std.mem.zeroes([16]u8);
     if (w.bl_lvl >= 0) {
-        _ = std.fmt.bufPrintZ(&txt, "{d}%", .{w.bl_lvl}) catch {};
+        _ = std.fmt.bufPrintZ(&txt, "{d}%", .{w.bl_lvl}) catch |err| {
+            std.log.err("bl txt format error: {}", .{err});
+        };
     } else {
         std.mem.copyForwards(u8, &txt, "n/a");
     }
@@ -855,9 +885,9 @@ fn blClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     _ = x;
     _ = y;
     if (btn == 1) {
-        _ = c.system("brightnessctl set +5% &");
+        _ = spawn("brightnessctl set +5% &");
     } else if (btn == 3) {
-        _ = c.system("brightnessctl set 5%- &");
+        _ = spawn("brightnessctl set 5%- &");
     } else {
         return false;
     }
@@ -877,29 +907,50 @@ pub fn widgetCreateDefault() WidgetList {
         .count = 0,
     };
 
+    // Compact default: only essential widgets. Additional widgets (temp, disk,
+    // network, media, world clock, backlight, etc.) remain available via the
+    // config file but are omitted from the default bar to keep it slim.
     const defaults = [_]struct { wtype: WidgetType, side: u8 }{
         .{ .wtype = .workspaces, .side = 0 },
         .{ .wtype = .toplevel_task, .side = 0 },
-        .{ .wtype = .launcher, .side = 0 },
         .{ .wtype = .cpu, .side = 1 },
         .{ .wtype = .mem, .side = 1 },
-        .{ .wtype = .temp, .side = 1 },
-        .{ .wtype = .disk, .side = 1 },
         .{ .wtype = .battery, .side = 1 },
         .{ .wtype = .volume, .side = 1 },
-        .{ .wtype = .network, .side = 1 },
-        .{ .wtype = .media, .side = 1 },
         .{ .wtype = .clock, .side = 1 },
-        .{ .wtype = .spacer, .side = 1 },
-        .{ .wtype = .kbindicator, .side = 1 },
-        .{ .wtype = .customcommand, .side = 1 },
-        .{ .wtype = .showdesktop, .side = 1 },
-        .{ .wtype = .worldclock, .side = 1 },
-        .{ .wtype = .backlight, .side = 1 },
         .{ .wtype = .power, .side = 1 },
     };
 
     for (defaults) |d| {
+        const idx: usize = @intCast(result.count);
+        result.widgets[idx] = createWidget(d.wtype);
+        result.widgets[idx].side = d.side;
+        result.count += 1;
+    }
+
+    return result;
+}
+
+
+pub fn widgetCreateCompact() WidgetList {
+    var result = WidgetList{
+        .widgets = std.mem.zeroes([MAX_WIDGETS]Widget),
+        .count = 0,
+    };
+
+    // Compact layout: only essential widgets
+    // Left: workspaces + launcher
+    // Right: clock + battery + volume + network
+    const compact = [_]struct { wtype: WidgetType, side: u8 }{
+        .{ .wtype = .workspaces, .side = 0 },
+        .{ .wtype = .launcher, .side = 0 },
+        .{ .wtype = .clock, .side = 1 },
+        .{ .wtype = .battery, .side = 1 },
+        .{ .wtype = .volume, .side = 1 },
+        .{ .wtype = .network, .side = 1 },
+    };
+
+    for (compact) |d| {
         const idx: usize = @intCast(result.count);
         result.widgets[idx] = createWidget(d.wtype);
         result.widgets[idx].side = d.side;
@@ -1110,7 +1161,10 @@ pub const LoadedWidgets = struct {
 };
 
 pub fn configLoadWidgets(allocator: std.mem.Allocator, path: []const u8) ?LoadedWidgets {
-    const path_z = allocator.dupeZ(u8, path) catch return null;
+    const path_z = allocator.dupeZ(u8, path) catch |err| {
+        std.log.err("allocator dupeZ error: {}", .{err});
+        return null;
+    };
     defer allocator.free(path_z);
     const f = c.fopen(path_z, "r") orelse return null;
     defer _ = c.fclose(f);
@@ -1213,6 +1267,7 @@ test "configLoadWidgets parses sections" {
         _ = c.remove(path);
     }
     _ = c.fputs("[cpu]\n[clock]\n[spacer]\n[unknown_skip]\n", f);
+    _ = c.fflush(f);
     const res = configLoadWidgets(std.testing.allocator, path) orelse return;
     // Unknown sections are skipped; valid ones are created.
     try std.testing.expect(res.count >= 3);

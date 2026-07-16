@@ -130,12 +130,15 @@ fn buildSizedPath(buf: *[1024:0]u8, dir_fmt: []const u8, size1: i32, size2: i32,
     var pos: usize = 0;
     var size_idx: u8 = 0;
     var i: usize = 0;
+    var digit_buf: [16]u8 = undefined;
     while (i < dir_fmt.len) : (i += 1) {
         if (dir_fmt[i] == '%' and i + 1 < dir_fmt.len and dir_fmt[i + 1] == 'd') {
             const val: usize = @intCast(if (size_idx == 0) size1 else size2);
             size_idx += 1;
-            var digit_buf: [16]u8 = undefined;
-            const digit_str = std.fmt.bufPrint(&digit_buf, "{d}", .{val}) catch return false;
+            const digit_str = std.fmt.bufPrint(&digit_buf, "{d}", .{val}) catch |err| {
+                std.log.err("digit buf format error: {}", .{err});
+                return false;
+            };
             for (digit_str) |d| { if (pos < buf.len) { buf[pos] = d; pos += 1; } }
             i += 1; // skip 'd'
         } else {
